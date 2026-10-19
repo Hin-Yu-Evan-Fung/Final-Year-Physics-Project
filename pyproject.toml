@@ -21,7 +21,16 @@ dev = [
 
 [tool.scikit-build]
 minimum-version = "0.4"
-build-dir = "build/{wheel_tag}"
-wheel.py-api = "cp312"
-cmake.args = ["-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"]
+build-dir = "build"
+wheel.packages = []
+cmake.build-type = "Release"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+include = ["python"]
+exclude = ["**/node_modules", "**/__pycache__", ".venv", "build"]
+extraPaths = ["build"]
+reportMissingImports = "warning"
+typeCheckingMode = "basic"
 

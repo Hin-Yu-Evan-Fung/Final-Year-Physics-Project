@@ -5,8 +5,21 @@
 ### For developers
 
 ```bash
-# Install project in editable mode and pull all dev tools at once
-pip install -e ".[dev]"
-# Updated C++ changes will be automatically compiled
-pip install --no-build-isolation -e .
+# 1. Instantiate and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# 2. Install core dependencies
+pip install -ve ".[dev]"
+
+# Add -Ceditable.rebuild=true to automatically rebuild before every run (slow)
+# Add -Ccmake.build-type=Release to build in optimised mode
+```
+
+### Testing
+
+```bash
+pytest -v -s # For Python tests
+
+./build/hsmc_tests # For C++ GTests
 ```
