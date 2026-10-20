@@ -17,11 +17,11 @@ concept HasDof =
     (T::dof > 0);
 
 template <HasDof T>
-using View =
-    nb::ndarray<double, nb::shape<-1, T::dof>, nb::c_contig, nb::device::cpu>;
+using View = nb::ndarray<nb::numpy, double, nb::shape<-1, T::dof>, nb::c_contig,
+                         nb::device::cpu>;
 
-using Indices =
-    nb::ndarray<uint32_t, nb::shape<-1>, nb::c_contig, nb::device::cpu>;
+using Indices = nb::ndarray<nb::numpy, uint32_t, nb::shape<-1>, nb::c_contig,
+                            nb::device::cpu>;
 
 template <HasDof T> constexpr auto view_to_span(View<T> view) {
   auto *raw_ptr = reinterpret_cast<const T *>(view.data());

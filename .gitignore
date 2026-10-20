@@ -47,3 +47,7 @@
 
 build/
 *__pycache__*
+
+# data files
+*.csv
+*.png

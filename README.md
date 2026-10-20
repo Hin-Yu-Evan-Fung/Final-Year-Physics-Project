@@ -13,7 +13,6 @@ source .venv/bin/activate
 pip install -ve ".[dev]"
 
 # Add -Ceditable.rebuild=true to automatically rebuild before every run (slow)
-# Add -Ccmake.build-type=Release to build in optimised mode
 ```
 
 ### Testing
