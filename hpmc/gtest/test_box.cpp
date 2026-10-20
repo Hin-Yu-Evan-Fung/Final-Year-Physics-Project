@@ -3,7 +3,7 @@
 #include "core/vec3.hpp"
 #include <gtest/gtest.h>
 
-using namespace hsmc;
+using namespace hpmc;
 
 TEST(BoxTest, DimensionsAndOrthorhombicWrapping) {
   Box cubic{10.0};

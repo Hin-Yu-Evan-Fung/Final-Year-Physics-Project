@@ -14,12 +14,10 @@ def main():
         print(f"Error reading CSV: {e}")
         return
 
-    # Sort data by particle count for proper line plotting
     df = df.sort_values(by="particles")
     
     plt.figure(figsize=(10, 5))
     
-    # Subplot 1: Throughput vs Particle Count
     plt.subplot(1, 2, 1)
     plt.plot(df["particles"], df["throughput"] / 1e6, marker='o', color='crimson', linewidth=2)
     plt.title("Simulation Throughput")
@@ -27,7 +25,6 @@ def main():
     plt.ylabel("Million Steps / Second")
     plt.grid(True, linestyle="--", alpha=0.6)
     
-    # Subplot 2: Execution Time vs Particle Count
     plt.subplot(1, 2, 2)
     plt.plot(df["particles"], df["elapsed"], marker='s', color='royalblue', linewidth=2)
     plt.title("Total Runtime Scaling")
@@ -37,7 +34,7 @@ def main():
     
     plt.tight_layout()
     plt.savefig(args.output, dpi=300)
-    print(f"📈 Chart successfully saved to: {args.output}")
+    print(f"Chart successfully saved to: {args.output}")
 
 if __name__ == "__main__":
     main()

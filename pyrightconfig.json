@@ -1,0 +1,14 @@
+{
+  "include": [
+    "hpmc",
+    "scripts",
+    "tests_python"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "analysis": {
+    "extraPaths": [
+      "./hpmc"
+    ]
+  }
+}

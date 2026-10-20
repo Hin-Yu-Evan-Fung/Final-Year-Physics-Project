@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace hsmc {
+namespace hpmc {
 
 //==========================
 //          State
@@ -30,14 +30,18 @@ public:
 
   constexpr size_t size() const { return particles_.size(); }
 
-  const std::vector<Particle> &get_particles() const { return particles_; }
-  void set_particles(std::span<const Particle> particles);
-
   void set_params(ParamType p) { params_ = p; }
   const ParamType &get_params() const { return params_; }
 
   void move(unsigned idx, const Move<Particle> &m);
   bool try_move(unsigned idx, const Move<Particle> &m);
+
+  // API functions
+
+  const std::vector<Particle> &get_particles() const { return particles_; }
+  void set_particles(std::span<const Particle> particles);
+
+  size_t count_overlaps() const;
 
   size_t try_run_batch(std::span<const uint32_t> indices,
                        std::span<const Move<Particle>> moves);
@@ -45,4 +49,4 @@ public:
                  std::span<const Move<Particle>> moves);
 };
 
-} // namespace hsmc
+} // namespace hpmc

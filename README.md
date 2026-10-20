@@ -10,7 +10,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 # 2. Install core dependencies
-pip install -ve ".[dev]"
+pip install --no-build-isolation -ve "./hsmc[dev]"
 
 # Add -Ceditable.rebuild=true to automatically rebuild before every run (slow)
 ```

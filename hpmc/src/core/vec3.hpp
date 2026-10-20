@@ -3,7 +3,7 @@
 #include <format>
 #include <string>
 
-namespace hsmc {
+namespace hpmc {
 
 struct Vec3 {
   double x, y, z;
@@ -40,4 +40,4 @@ struct Vec3 {
 
 inline constexpr Vec3 operator*(double s, const Vec3 &v) { return v * s; }
 
-} // namespace hsmc
+} // namespace hpmc

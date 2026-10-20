@@ -4,7 +4,7 @@
 
 #include <cmath>
 
-namespace hsmc {
+namespace hpmc {
 
 class Box {
   Vec3 dim_;
@@ -40,4 +40,4 @@ public:
   }
 };
 
-} // namespace hsmc
+} // namespace hpmc

@@ -4,9 +4,7 @@
 #include "core/particle.hpp"
 #include "core/vec3.hpp"
 
-#include <nanobind/ndarray.h>
-
-namespace hsmc {
+namespace hpmc {
 
 struct HardSphere;
 
@@ -36,7 +34,7 @@ struct HardSphereParams {
 // Function to check if there is an overlap
 constexpr bool has_overlap(const Box &box, const HardSphere &h1,
                            const HardSphere &h2, const HardSphereParams &p) {
-  return box.dist2(h1.pos, h2.pos) < p.sigma * p.sigma;
+  return box.dist2(h1.pos, h2.pos) < 4 * p.sigma * p.sigma;
 }
 
 static_assert(sizeof(HardSphere) == HardSphere::dof * sizeof(double),
@@ -51,4 +49,4 @@ static_assert(
     sizeof(Move<HardSphere>) == Move<HardSphere>::dof * sizeof(double),
     "Layout mismatch: Move struct size does not match its DOF footprint!");
 
-} // namespace hsmc
+} // namespace hpmc

@@ -2,7 +2,7 @@
 #include "core/vec3.hpp"
 #include <gtest/gtest.h>
 
-using namespace hsmc;
+using namespace hpmc;
 
 TEST(Vec3Test, DefaultConstructorZeroesCoordinates) {
   // Verify default constructor zeroes out the coordinate states

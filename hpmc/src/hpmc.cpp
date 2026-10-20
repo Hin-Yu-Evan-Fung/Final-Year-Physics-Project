@@ -7,8 +7,8 @@
 
 namespace nb = nanobind;
 
-NB_MODULE(hsmc, m) {
-  using namespace hsmc;
+NB_MODULE(hpmc_ext, m) {
+  using namespace hpmc;
 
   using StateHS = State<HardSphere, HardSphereParams>;
   using MoveHS = Move<HardSphere>;
@@ -42,7 +42,7 @@ NB_MODULE(hsmc, m) {
             s.set_particles(view_to_span<HardSphere>(p));
           },
           nb::arg("particles").noconvert())
-
+      .def("count_overlaps", &StateHS::count_overlaps)
       .def(
           "try_run_batch",
           [](StateHS &s, Indices indices, View<Move<HardSphere>> moves) {
