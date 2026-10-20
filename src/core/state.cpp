@@ -11,17 +11,10 @@ namespace hsmc {
 // ====================================================================
 
 template <ParticleLike Particle, typename Params>
-void State<Particle, Params>::set_particles(View<Particle> particles) {
-  size_t num_particles = particles.shape(0);
-
+void State<Particle, Params>::set_particles(std::span<const Particle> p) {
   particles_.clear();
-  particles_.resize(num_particles);
-
-  for (size_t i = 0; i < num_particles; ++i) {
-    Particle p;
-    std::memcpy(&p, &particles(i, 0), row_bytes());
-    particles_[i] = p;
-  }
+  particles_.resize(p.size());
+  std::memcpy(particles_.data(), p.data(), p.size_bytes());
 }
 
 template <ParticleLike Particle, typename Params>
@@ -56,20 +49,19 @@ size_t State<Particle, Params>::row_bytes() {
 }
 
 template <ParticleLike Particle, typename Params>
-size_t State<Particle, Params>::try_run_batch(Indices indices,
-                                              View<Move<Particle>> moves) {
+size_t
+State<Particle, Params>::try_run_batch(std::span<const uint32_t> indices,
+                                       std::span<const Move<Particle>> moves) {
   ENGINE_ASSERT(indices.shape(0) == moves.shape(0), std::invalid_argument,
                 "Batch size mismatch");
 
   size_t accepted = 0;
-  size_t steps = indices.shape(0);
+  size_t steps = indices.size();
 
   const uint32_t *idx_ptr = indices.data();
 
   for (size_t i = 0; i < steps; ++i) {
-    Move<Particle> m;
-    std::memcpy(&m, &moves(i, 0), row_bytes());
-    if (try_move(idx_ptr[i], m))
+    if (try_move(idx_ptr[i], moves[i]))
       accepted++;
   }
 
@@ -77,18 +69,16 @@ size_t State<Particle, Params>::try_run_batch(Indices indices,
 }
 
 template <ParticleLike Particle, typename Params>
-void State<Particle, Params>::run_batch(Indices indices,
-                                        View<Move<Particle>> moves) {
+void State<Particle, Params>::run_batch(std::span<const uint32_t> indices,
+                                        std::span<const Move<Particle>> moves) {
   ENGINE_ASSERT(indices.shape(0) == moves.shape(0), std::invalid_argument,
                 "Batch size mismatch");
 
-  size_t steps = indices.shape(0);
+  size_t steps = indices.size();
   const uint32_t *idx_ptr = indices.data();
 
   for (size_t i = 0; i < steps; ++i) {
-    Move<Particle> m;
-    std::memcpy(&m, &moves(i, 0), row_bytes());
-    move(idx_ptr[i], m);
+    move(idx_ptr[i], moves[i]);
   }
 }
 

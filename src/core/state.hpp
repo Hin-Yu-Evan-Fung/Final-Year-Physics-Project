@@ -2,9 +2,7 @@
 
 #include "box.hpp"
 #include "particle.hpp"
-#include "utils.hpp"
 
-#include <nanobind/ndarray.h>
 #include <vector>
 
 namespace hsmc {
@@ -33,7 +31,7 @@ public:
   constexpr size_t size() const { return particles_.size(); }
 
   const std::vector<Particle> &get_particles() const { return particles_; }
-  void set_particles(View<Particle> particles);
+  void set_particles(std::span<const Particle> particles);
 
   void set_params(ParamType p) { params_ = p; }
   const ParamType &get_params() const { return params_; }
@@ -41,8 +39,10 @@ public:
   void move(unsigned idx, const Move<Particle> &m);
   bool try_move(unsigned idx, const Move<Particle> &m);
 
-  size_t try_run_batch(Indices indices, View<Move<Particle>> moves);
-  void run_batch(Indices indices, View<Move<Particle>> moves);
+  size_t try_run_batch(std::span<const uint32_t> indices,
+                       std::span<const Move<Particle>> moves);
+  void run_batch(std::span<const uint32_t> indices,
+                 std::span<const Move<Particle>> moves);
 };
 
 } // namespace hsmc

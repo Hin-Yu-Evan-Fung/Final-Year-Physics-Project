@@ -1,9 +1,9 @@
 #include "core/state.hpp"
 #include "core/vec3.hpp"
+#include "nb_utils.hpp"
 #include "particles/hard_sphere.hpp"
 
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/vector.h> // Modern explicit STL headers
 
 namespace nb = nanobind;
 
@@ -23,9 +23,39 @@ NB_MODULE(hsmc, m) {
       .def(nb::init<double, HardSphereParams>(), nb::arg("L"),
            nb::arg("params"))
       .def("size", &StateHS::size)
-      .def("set_particles", &StateHS::set_particles)
-      .def("try_run_batch", &StateHS::try_run_batch,
-           nb::arg("indices").noconvert(), nb::arg("moves").noconvert())
-      .def("run_batch", &StateHS::run_batch, nb::arg("indices").noconvert(),
-           nb::arg("moves").noconvert());
+      .def(
+          "get_particles",
+          [](StateHS &s) {
+            size_t shape[2] = {s.size(), static_cast<size_t>(HardSphere::dof)};
+
+            return View<HardSphere>(
+                reinterpret_cast<double *>(
+                    const_cast<HardSphere *>(s.get_particles().data())),
+                2,     // 2 Dimensions (Rows, DoF columns)
+                shape, // Shape configuration
+                nb::handle());
+          },
+          nb::rv_policy::reference_internal)
+      .def(
+          "set_particles",
+          [](StateHS &s, View<HardSphere> p) {
+            s.set_particles(view_to_span<HardSphere>(p));
+          },
+          nb::arg("particles").noconvert())
+
+      .def(
+          "try_run_batch",
+          [](StateHS &s, Indices indices, View<Move<HardSphere>> moves) {
+            return s.try_run_batch(indices_to_span(indices),
+                                   view_to_span<Move<HardSphere>>(moves));
+          },
+          nb::arg("indices").noconvert(), nb::arg("moves").noconvert())
+
+      .def(
+          "run_batch",
+          [](StateHS &s, Indices indices, View<Move<HardSphere>> moves) {
+            s.run_batch(indices_to_span(indices),
+                        view_to_span<Move<HardSphere>>(moves));
+          },
+          nb::arg("indices").noconvert(), nb::arg("moves").noconvert());
 }
