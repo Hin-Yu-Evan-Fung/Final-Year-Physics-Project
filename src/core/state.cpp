@@ -4,7 +4,7 @@
 #include "utils.hpp"
 #include <cstring>
 
-namespace hsmc {
+namespace hpmc {
 
 // ====================================================================
 //                           Implementation
@@ -49,10 +49,19 @@ size_t State<Particle, Params>::row_bytes() {
 }
 
 template <ParticleLike Particle, typename Params>
+size_t State<Particle, Params>::count_overlaps() const {
+  size_t overlaps = 0;
+  for (size_t i = 0; i < particles_.size(); ++i)
+    for (size_t j = i + 1; j < particles_.size(); ++j)
+      overlaps += has_overlap(box_, particles_[i], particles_[j], params_);
+  return overlaps;
+}
+
+template <ParticleLike Particle, typename Params>
 size_t
 State<Particle, Params>::try_run_batch(std::span<const uint32_t> indices,
                                        std::span<const Move<Particle>> moves) {
-  ENGINE_ASSERT(indices.shape(0) == moves.shape(0), std::invalid_argument,
+  ENGINE_ASSERT(indices.size() == moves.size(), std::invalid_argument,
                 "Batch size mismatch");
 
   size_t accepted = 0;
@@ -71,7 +80,7 @@ State<Particle, Params>::try_run_batch(std::span<const uint32_t> indices,
 template <ParticleLike Particle, typename Params>
 void State<Particle, Params>::run_batch(std::span<const uint32_t> indices,
                                         std::span<const Move<Particle>> moves) {
-  ENGINE_ASSERT(indices.shape(0) == moves.shape(0), std::invalid_argument,
+  ENGINE_ASSERT(indices.size() == moves.size(), std::invalid_argument,
                 "Batch size mismatch");
 
   size_t steps = indices.size();
@@ -84,4 +93,4 @@ void State<Particle, Params>::run_batch(std::span<const uint32_t> indices,
 
 template class State<HardSphere, HardSphereParams>;
 
-}; // namespace hsmc
+}; // namespace hpmc

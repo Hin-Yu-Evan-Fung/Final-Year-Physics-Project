@@ -47,6 +47,7 @@
 
 build/
 *__pycache__*
+*.egg-info/
 
 # data files
 *.csv

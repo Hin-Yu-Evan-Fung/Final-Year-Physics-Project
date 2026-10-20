@@ -1,6 +1,6 @@
 #pragma once
 
-namespace hsmc {
+namespace hpmc {
 
 #ifndef NDEBUG
 #define ENGINE_ASSERT(condition, exception_type, message)                      \
@@ -11,4 +11,4 @@ namespace hsmc {
 #define ENGINE_ASSERT(condition, exception_type, message)
 #endif
 
-} // namespace hsmc
+} // namespace hpmc

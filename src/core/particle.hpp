@@ -2,7 +2,7 @@
 
 #include <concepts>
 
-namespace hsmc {
+namespace hpmc {
 
 // Move definiton
 template <typename Particle> struct Move;
@@ -15,4 +15,4 @@ concept ParticleLike =
       { a.move(m) } -> std::same_as<T>;
     };
 
-} // namespace hsmc
+} // namespace hpmc

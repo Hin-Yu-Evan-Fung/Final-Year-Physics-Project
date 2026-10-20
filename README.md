@@ -4,21 +4,31 @@
 
 ### For developers
 
+#### Setup
+
 ```bash
-# 1. Instantiate and activate a virtual environment
+# 1. Compile C++ libraries
+cmake -B build         # Run once at the start (-DCMAKE_BUILD_TYPES=Release for optimised mode)
+cmake --build build -j # Run every time there is an update to the C++ code
+
+# 2. Instantiate and activate a virtual environment
 python -m venv .venv
 source .venv/bin/activate
 
-# 2. Install core dependencies
-pip install -ve ".[dev]"
+# 3. Install required libraries
+pip install -r requirements.txt
+pip install -e .
+```
 
-# Add -Ceditable.rebuild=true to automatically rebuild before every run (slow)
+#### Updating Python libraries
+
+```bash
+pip freeze --exclude-editable > requirements.txt
 ```
 
 ### Testing
 
 ```bash
-pytest -v -s # For Python tests
-
+pytest -s          # For Python tests
 ./build/hsmc_tests # For C++ GTests
 ```

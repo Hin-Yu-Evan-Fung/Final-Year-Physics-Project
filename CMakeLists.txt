@@ -1,20 +1,22 @@
 cmake_minimum_required(VERSION 3.20)
-project(hsmc LANGUAGES CXX)
+project(hpmc LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Warn if the user invokes CMake directly
-if (NOT SKBUILD)
-  message(WARNING "Use pip install .")
-endif()
-
+include(FetchContent)
+FetchContent_Declare(
+  nanobind
+  GIT_REPOSITORY https://github.com/wjakob/nanobind.git
+  GIT_TAG        v3.1.0
+)
 find_package(Python 3.14
   REQUIRED COMPONENTS Interpreter Development.Module
-  OPTIONAL_COMPONENTS Development.SABIModule)
-find_package(nanobind CONFIG REQUIRED)
+  OPTIONAL_COMPONENTS Development.SABIModule
+)
+FetchContent_MakeAvailable(nanobind)
 
 file(GLOB_RECURSE SOURCES
     "src/core/*.cpp"
@@ -23,24 +25,17 @@ file(GLOB_RECURSE SOURCES
 
 include_directories(src)
 nanobind_add_module(
-  hsmc
-  src/hsmc.cpp
+  hpmc_ext
+  STABLE_ABI
+  NB_STATIC
+  src/hpmc.cpp
   ${SOURCES}
 )
-target_compile_definitions(hsmc PRIVATE  $<$<CONFIG:Release>:NDEBUG>)
-target_compile_options(hsmc PRIVATE  $<$<CONFIG:Release>:-O3 -march=native -ffast-math>)
-install(TARGETS hsmc DESTINATION .)
-
-find_program(NANOBIND_STUBGEN NAMES nanobind-stubgen)
-
-if(NOT CMAKE_SKIP_INSTALL_RULES)
-  nanobind_add_stub(
-      hsmc_stub
-      MODULE hsmc
-      OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/python/hsmc.pyi"
-      DEPENDS hsmc
-    )
-endif()
+target_compile_definitions(hpmc_ext PRIVATE  $<$<CONFIG:Release>:NDEBUG>)
+target_compile_options(hpmc_ext PRIVATE  $<$<CONFIG:Release>:-O3 -march=native -ffast-math>)
+set_target_properties(hpmc_ext PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hpmc/"
+)
 
 # Google tests
 
@@ -59,14 +54,12 @@ file(GLOB_RECURSE GTEST_SOURCES
     "gtest/*.cpp"
 )
 
-add_executable(
-  hsmc_tests 
-  ${GTEST_SOURCES}
-)
+add_executable(hpmc_tests ${GTEST_SOURCES})
 
-target_include_directories(hsmc_tests PRIVATE src)
-target_link_libraries(hsmc_tests PRIVATE gtest_main)
-target_compile_definitions(hsmc_tests PRIVATE $<$<CONFIG:Release>:NDEBUG>)
-target_compile_options(hsmc_tests PRIVATE $<$<CONFIG:Release>:-O3 -march=native -ffast-math>)
+target_include_directories(hpmc_tests PRIVATE src)
+target_link_libraries(hpmc_tests PRIVATE gtest_main)
+target_compile_definitions(hpmc_tests PRIVATE $<$<CONFIG:Release>:NDEBUG>)
+target_compile_options(hpmc_tests PRIVATE $<$<CONFIG:Release>:-O3 -march=native -ffast-math>)
 
-add_test(NAME core_unit_tests COMMAND hsmc_tests)
+add_test(NAME core_unit_tests COMMAND hpmc_tests)
+

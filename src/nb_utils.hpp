@@ -5,7 +5,7 @@
 
 namespace nb = nanobind;
 
-namespace hsmc {
+namespace hpmc {
 
 template <typename T>
 concept HasDof =
@@ -32,4 +32,4 @@ constexpr auto indices_to_span(Indices indices) {
   return std::span<const uint32_t>(indices.data(), indices.shape(0));
 }
 
-} // namespace hsmc
+} // namespace hpmc
