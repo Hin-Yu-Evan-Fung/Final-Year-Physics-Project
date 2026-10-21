@@ -51,6 +51,15 @@ set_target_properties(hpmc_ext PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hpmc/"
 )
 
+nanobind_add_stub(
+  hpmc_ext_stub
+  MODULE hpmc_ext
+  TARGET hpmc_ext
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/hpmc/hpmc_ext.pyi"
+  PYTHON_PATH $<TARGET_FILE_DIR:hpmc_ext>
+  DEPENDS hpmc_ext
+)
+
 # -----------------------------------------------------------------------------
 # Target: Google Test
 # -----------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 #include "core/box.hpp"
 #include "core/particle.hpp"
+#include "core/utils.hpp"
 #include "core/vec3.hpp"
 
 namespace hpmc {
@@ -13,6 +14,13 @@ template <> struct Move<HardSphere> {
   static constexpr size_t dof = 3;
 
   Vec3 vec;
+
+  static Move<HardSphere> generate_move(double max, PRNG &rng) {
+    const double dx = (rng.random_double() - 0.5) * 2.0 * max;
+    const double dy = (rng.random_double() - 0.5) * 2.0 * max;
+    const double dz = (rng.random_double() - 0.5) * 2.0 * max;
+    return {{dx, dy, dz}};
+  };
 };
 
 // Active arguments (parameters that are different per instance)
@@ -48,5 +56,8 @@ static_assert(std::is_trivially_copyable_v<HardSphere>,
 static_assert(
     sizeof(Move<HardSphere>) == Move<HardSphere>::dof * sizeof(double),
     "Layout mismatch: Move struct size does not match its DOF footprint!");
+
+static_assert(MoveGeneratable<HardSphere>,
+              "Move<Particle>::generate_moves() is not implemented");
 
 } // namespace hpmc

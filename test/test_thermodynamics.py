@@ -68,22 +68,14 @@ def test_thermodynamic_ideal_gas_limit():
     assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
 
     # 1. Long Equilibrate Phase: Melt the grid completely
-    EQUIL_MOVES = 150_000
-    moves = np.random.uniform(-DISP, DISP, size=(EQUIL_MOVES, 3)).astype(np.float64)
-    indices = np.random.randint(0, N, size=EQUIL_MOVES, dtype=np.uint32)
-    sim.try_run_batch(indices=indices, moves=moves)
+    sim.run_batch(sweeps=1_000, max_disp=DISP, seed=1)
 
     # 2. Production Phase: Sample the system 5 times to smooth out frame noise
     z_samples = []
     SAMPLE_BLOCKS = 5
-    STEPS_PER_BLOCK = 20_000
 
-    for _ in range(SAMPLE_BLOCKS):
-        prod_moves = np.random.uniform(-DISP, DISP, size=(STEPS_PER_BLOCK, 3)).astype(
-            np.float64
-        )
-        prod_indices = np.random.randint(0, N, size=STEPS_PER_BLOCK, dtype=np.uint32)
-        sim.try_run_batch(indices=prod_indices, moves=prod_moves)
+    for i in range(SAMPLE_BLOCKS):
+        sim.run_batch(sweeps=100, max_disp=DISP, seed=i + 2)
 
         # Take a snapshot metric at the end of this block
         current_pos = sim.get_particles()
