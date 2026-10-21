@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/utils.hpp"
 #include <concepts>
 
 namespace hpmc {
@@ -14,5 +15,10 @@ concept ParticleLike =
     requires(T a, const Move<T> &m) {
       { a.move(m) } -> std::same_as<T>;
     };
+
+template <typename T>
+concept MoveGeneratable = requires(double max, PRNG &rng) {
+  { Move<T>::generate_move(max, rng) } -> std::same_as<Move<T>>;
+};
 
 } // namespace hpmc

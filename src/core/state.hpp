@@ -43,10 +43,7 @@ public:
 
   size_t count_overlaps() const;
 
-  size_t try_run_batch(std::span<const uint32_t> indices,
-                       std::span<const Move<Particle>> moves);
-  void run_batch(std::span<const uint32_t> indices,
-                 std::span<const Move<Particle>> moves);
+  size_t run_batch(size_t sweeps, double max_disp, uint64_t seed);
 };
 
 } // namespace hpmc

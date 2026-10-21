@@ -31,25 +31,13 @@ class HardSphereSimulation:
         """Returns number of overlaps in the system"""
         return self._engine.count_overlaps()
 
-    def __validate_moves(self, indices: np.ndarray, moves: np.ndarray) -> None:
+    def __validate_moves(self) -> None:
         if self.n_particles() == 0:
             raise RuntimeError(
                 "Cannot execute simulation steps with 0 particles initialized."
             )
-        n_particles = indices.shape[0]
-        if indices.ndim != 1 or indices.dtype != np.uint32:
-            raise RuntimeError("Wrong indices format, should be a 1d float64 np.array")
-        if moves.shape != (n_particles, self._dof) or moves.dtype != np.float64:
-            raise RuntimeError(
-                f"Wrong moves format, should be a 2d float64 np.array with shape (self.size, {self._dof})"
-            )
 
-    def try_run_batch(self, indices: np.ndarray, moves: np.ndarray) -> int:
-        """Tries to displace batches of particles at different indicies by the provided move, reject if collision occurs"""
-        self.__validate_moves(indices, moves)
-        return self._engine.try_run_batch(indices, moves)
-
-    def run_batch(self, indices: np.ndarray, moves: np.ndarray) -> None:
-        """Displaces batches of particles at different indicies by the provided move"""
-        self.__validate_moves(indices, moves)
-        self._engine.run_batch(indices, moves)
+    def run_batch(self, sweeps: int, max_disp: float, seed: int = 1) -> int:
+        """Perform a batch of monte carlo sweeps at a certain max displacement"""
+        self.__validate_moves()
+        return self._engine.run_batch(sweeps, max_disp, seed)

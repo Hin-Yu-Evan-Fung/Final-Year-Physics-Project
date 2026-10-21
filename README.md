@@ -32,3 +32,9 @@ pip freeze --exclude-editable > requirements.txt
 pytest -s          # For Python tests
 ./build/hsmc_tests # For C++ GTests
 ```
+
+### Benchmarking
+
+```bash
+python scripts/run_bench.py -n 216 -l 10.0 -s 10000
+```

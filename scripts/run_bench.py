@@ -3,8 +3,6 @@ import csv
 import os
 import time
 
-import numpy as np
-
 import hpmc
 from hpmc.utils.lattice import generate_cubic_lattice
 
@@ -15,7 +13,7 @@ def main():
         "-n", "--particles", type=int, default=256, help="Number of particles"
     )
     parser.add_argument(
-        "-m", "--moves", type=int, default=2_000_000, help="Number of MC moves"
+        "-s", "--sweeps", type=int, default=10_000, help="Number of MC sweeps"
     )
     parser.add_argument(
         "-l", "--box-length", type=float, default=20.0, help="Box side length (L)"
@@ -41,28 +39,24 @@ def main():
     assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
     assert sim.n_particles() == args.particles
 
-    print(f" -> Generating {args.moves:,} random trial steps...")
-
-    moves = np.random.uniform(-0.1, 0.1, size=(args.moves, 3)).astype(np.float64)
-    indices = np.random.randint(0, args.particles, size=args.moves, dtype=np.uint32)
-
     print(" -> Executing C++ batch update sweep...")
 
     start_time = time.perf_counter()
-    accepted = sim.try_run_batch(indices=indices, moves=moves)
+    accepted = sim.run_batch(sweeps=args.sweeps, max_disp=0.1)
     end_time = time.perf_counter()
 
     elapsed = end_time - start_time
-    throughput = args.moves / elapsed
+    moves = args.sweeps * args.particles
+    throughput = moves / elapsed
     density = args.particles / (args.box_length**3)
 
     print(f" - Elapsed Time: {elapsed:.4f} seconds")
     print(f" - Sweep Velocity: {throughput:,.0f} moves/sec")
-    print(f" - Accepted Moves: {accepted:,} / {args.moves:,}")
+    print(f" - Accepted Moves: {accepted:,} / {moves:,}")
 
     # Verify sanity structural bounds
     assert isinstance(accepted, int)
-    assert 0 <= accepted <= args.moves
+    assert 0 <= accepted <= args.sweeps * args.particles
 
     if args.save_csv:
         file_exists = os.path.isfile(args.save_csv)
@@ -74,7 +68,7 @@ def main():
                         "particles",
                         "box_length",
                         "density",
-                        "moves",
+                        "sweeps",
                         "elapsed",
                         "throughput",
                     ]
@@ -84,7 +78,7 @@ def main():
                     args.particles,
                     args.box_length,
                     density,
-                    args.moves,
+                    args.sweeps,
                     elapsed,
                     throughput,
                 ]

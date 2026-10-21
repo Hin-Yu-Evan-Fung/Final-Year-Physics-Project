@@ -43,19 +43,5 @@ NB_MODULE(hpmc_ext, m) {
           },
           nb::arg("particles").noconvert())
       .def("count_overlaps", &StateHS::count_overlaps)
-      .def(
-          "try_run_batch",
-          [](StateHS &s, Indices indices, View<Move<HardSphere>> moves) {
-            return s.try_run_batch(indices_to_span(indices),
-                                   view_to_span<Move<HardSphere>>(moves));
-          },
-          nb::arg("indices").noconvert(), nb::arg("moves").noconvert())
-
-      .def(
-          "run_batch",
-          [](StateHS &s, Indices indices, View<Move<HardSphere>> moves) {
-            s.run_batch(indices_to_span(indices),
-                        view_to_span<Move<HardSphere>>(moves));
-          },
-          nb::arg("indices").noconvert(), nb::arg("moves").noconvert());
+      .def("run_batch", &StateHS::run_batch);
 }

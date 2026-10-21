@@ -19,18 +19,12 @@ void State<Particle, Params>::set_particles(std::span<const Particle> p) {
 
 template <ParticleLike Particle, typename Params>
 void State<Particle, Params>::move(unsigned idx, const Move<Particle> &m) {
-  ENGINE_ASSERT(idx < particles_.size(), std::out_of_range,
-                "Particle index out of bounds");
-
   particles_[idx] = particles_[idx].move(m);
   particles_[idx].pos = box_.wrap(particles_[idx].pos);
 }
 
 template <ParticleLike Particle, typename Params>
 bool State<Particle, Params>::try_move(unsigned idx, const Move<Particle> &m) {
-  ENGINE_ASSERT(idx < particles_.size(), std::out_of_range,
-                "Particle index out of bounds");
-
   Particle trial = particles_[idx].move(m);
   trial.pos = box_.wrap(trial.pos);
   return !check_overlap(idx, trial) ? (particles_[idx] = trial, true) : false;
@@ -58,37 +52,22 @@ size_t State<Particle, Params>::count_overlaps() const {
 }
 
 template <ParticleLike Particle, typename Params>
-size_t
-State<Particle, Params>::try_run_batch(std::span<const uint32_t> indices,
-                                       std::span<const Move<Particle>> moves) {
-  ENGINE_ASSERT(indices.size() == moves.size(), std::invalid_argument,
-                "Batch size mismatch");
+size_t State<Particle, Params>::run_batch(size_t sweeps, double max_disp,
+                                          uint64_t seed) {
+  PRNG rng(seed);
+  const size_t N = size();
 
   size_t accepted = 0;
-  size_t steps = indices.size();
+  for (size_t sweep = 0; sweep < sweeps; ++sweep) {
+    for (size_t i = 0; i < N; ++i) {
+      size_t target_idx = rng.random_index(N);
 
-  const uint32_t *idx_ptr = indices.data();
-
-  for (size_t i = 0; i < steps; ++i) {
-    if (try_move(idx_ptr[i], moves[i]))
-      accepted++;
+      if (try_move(target_idx, Move<Particle>::generate_move(max_disp, rng)))
+        accepted++;
+    }
   }
 
   return accepted;
-}
-
-template <ParticleLike Particle, typename Params>
-void State<Particle, Params>::run_batch(std::span<const uint32_t> indices,
-                                        std::span<const Move<Particle>> moves) {
-  ENGINE_ASSERT(indices.size() == moves.size(), std::invalid_argument,
-                "Batch size mismatch");
-
-  size_t steps = indices.size();
-  const uint32_t *idx_ptr = indices.data();
-
-  for (size_t i = 0; i < steps; ++i) {
-    move(idx_ptr[i], moves[i]);
-  }
 }
 
 template class State<HardSphere, HardSphereParams>;
