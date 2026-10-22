@@ -3,6 +3,7 @@
 #include "box.hpp"
 #include "particle.hpp"
 
+#include <span>
 #include <vector>
 
 namespace hpmc {
