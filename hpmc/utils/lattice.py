@@ -32,10 +32,14 @@ def generate_cubic_lattice(
             f"but your box_length is only {box_length:.4f}."
         )
 
-    grid_points = np.linspace(radius, box_length - radius, points_per_axis)
+    grid_points = np.linspace(
+        radius, box_length - radius, points_per_axis, dtype=np.float64
+    )
 
     x, y, z = np.meshgrid(grid_points, grid_points, grid_points, indexing="ij")
 
-    positions = np.vstack([x.ravel(), y.ravel(), z.ravel()]).T
-
-    return positions[:num_particles]
+    return (
+        np.ravel(x)[:num_particles],
+        np.ravel(y)[:num_particles],
+        np.ravel(z)[:num_particles],
+    )

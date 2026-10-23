@@ -1,35 +1,27 @@
 #pragma once
 
 #include <nanobind/ndarray.h>
-#include <span>
 
 namespace nb = nanobind;
 
 namespace hpmc {
 
 template <typename T>
-concept HasDof =
-    // Condition 1: Must have a static compile-time 'dof' variable
-    requires {
-      { T::dof } -> std::convertible_to<ssize_t>;
-    } &&
-    // Condition 2: The dof must be physically valid (greater than 0)
-    (T::dof > 0);
+inline T get_param(const nb::kwargs &kwargs, const std::string &key,
+                   bool required) {
+  if (!kwargs.contains(key.c_str())) {
+    // Throws a clean ValueError back to Python instantly
+    throw nb::value_error(
+        ("Missing required configuration parameter: '" + key + "'").c_str());
+  }
 
-template <HasDof T>
-using View = nb::ndarray<nb::numpy, double, nb::shape<-1, T::dof>, nb::c_contig,
-                         nb::device::cpu>;
-
-using Indices = nb::ndarray<nb::numpy, uint32_t, nb::shape<-1>, nb::c_contig,
-                            nb::device::cpu>;
-
-template <HasDof T> constexpr auto view_to_span(View<T> view) {
-  auto *raw_ptr = reinterpret_cast<const T *>(view.data());
-  return std::span<const T>(raw_ptr, view.shape(0));
-}
-
-constexpr auto indices_to_span(Indices indices) {
-  return std::span<const uint32_t>(indices.data(), indices.shape(0));
+  try {
+    return nb::cast<T>(kwargs[key.c_str()]);
+  } catch (const nb::cast_error &e) {
+    throw nb::type_error(
+        ("Parameter '" + key + "' must be a numeric type (float or int).")
+            .c_str());
+  }
 }
 
 } // namespace hpmc

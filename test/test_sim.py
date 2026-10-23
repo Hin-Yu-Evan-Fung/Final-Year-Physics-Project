@@ -16,17 +16,19 @@ def test_hard_core_overlap_matrix_method():
     DIAM = 2 * SIGMA
     MAX_DISP = 0.2 * SIGMA
 
-    sim = hpmc.HardSphereSimulation(L=L, params=hpmc.HardSphereParams(SIGMA))
+    sim = hpmc.SingleBoxEngine(hpmc.ParticleType.Sphere, L, radius=SIGMA)
 
-    init_pos = generate_cubic_lattice(N, L, SIGMA)
-    sim.set_particles(init_pos)
+    init_coords = generate_cubic_lattice(N, L, SIGMA)
+    sim.set_coords(*init_coords)
 
-    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert sim.count_overlaps_naive() == 0, (
+        "There should be no particle overlaps initially"
+    )
 
     sim.run_batch(sweeps=SWEEPS, max_disp=MAX_DISP)
 
-    new_pos = sim.get_particles()
-    dist_matrix = generate_dist_matrix(new_pos, L)
+    new_pos = sim.get_coords()
+    dist_matrix = generate_dist_matrix(*new_pos, L)
 
     rows, cols = np.triu_indices(N, k=1)
     unique_distances = dist_matrix[rows, cols]

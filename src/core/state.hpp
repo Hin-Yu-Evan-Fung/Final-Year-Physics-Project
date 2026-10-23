@@ -2,49 +2,70 @@
 
 #include "box.hpp"
 #include "particle.hpp"
+#include "particles/hard_sphere.hpp"
 
 #include <span>
+#include <variant>
 #include <vector>
 
 namespace hpmc {
 
-//==========================
-//          State
-//==========================
+using ParticleConfig = std::variant<SphereConfig>;
 
-template <ParticleLike Particle, typename ParamType> class State {
+class State {
+  // Config
+  ParticleType type_;
+  ParticleConfig config_;
+
+  // Internal state
   Box box_;
-  std::vector<Particle> particles_;
-  ParamType params_;
+  std::vector<double> x_{}, y_{}, z_{};
+  size_t n_ = 0;
 
-  bool check_overlap(unsigned idx, const Particle &particle) const {
-    for (size_t i = 0; i < particles_.size(); ++i)
-      if (i != idx && has_overlap(box_, particles_[i], particle, params_))
+  // Accept reject cache
+  int curr_idx_ = -1;
+  Vec3 old_pos_ = {};
+
+  template <typename Config>
+  bool overlaps_naive(const Config &config, size_t idx, const Vec3 &pos) const {
+    for (size_t i = 0; i < n_; ++i)
+      if (i != idx && config.overlap_naive(box_, pos, pos_at(i)))
         return true;
     return false;
   }
 
-  static size_t row_bytes();
+  template <typename Config>
+  size_t count_overlaps_naive(const Config &config) const {
+    size_t overlaps = 0;
+    for (size_t i = 0; i < n_ - 1; ++i) {
+      for (size_t j = i + 1; j < n_; ++j) {
+        overlaps += config.overlap_naive(box_, pos_at(i), pos_at(j));
+      }
+    }
+    return overlaps;
+  }
 
 public:
-  State(double L, ParamType params) : box_(L), params_(params) {}
+  State(ParticleType type, double box_length, ParticleConfig config)
+      : type_(type), config_(config), box_(box_length) {}
 
-  constexpr size_t size() const { return particles_.size(); }
+  constexpr size_t n() const { return n_; }
+  const std::vector<double> &x() const { return x_; }
+  const std::vector<double> &y() const { return y_; }
+  const std::vector<double> &z() const { return z_; }
 
-  void set_params(ParamType p) { params_ = p; }
-  const ParamType &get_params() const { return params_; }
+  constexpr Vec3 pos_at(size_t idx) const {
+    return {x_[idx], y_[idx], z_[idx]};
+  }
 
-  void move(unsigned idx, const Move<Particle> &m);
-  bool try_move(unsigned idx, const Move<Particle> &m);
+  void set_coords(std::span<const double> x, std::span<const double> y,
+                  std::span<const double> z);
 
-  // API functions
+  bool check_overlaps_naive(size_t idx) const;
+  size_t count_overlaps_naive() const;
 
-  const std::vector<Particle> &get_particles() const { return particles_; }
-  void set_particles(std::span<const Particle> particles);
-
-  size_t count_overlaps() const;
-
-  size_t run_batch(size_t sweeps, double max_disp, uint64_t seed);
+  void translate(size_t idx, const Vec3 &displacement);
+  void reject_move();
 };
 
 } // namespace hpmc

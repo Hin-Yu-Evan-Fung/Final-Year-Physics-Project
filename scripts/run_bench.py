@@ -27,16 +27,19 @@ def main():
 
     args = parser.parse_args()
 
-    params = hpmc.HardSphereParams(args.radius)
-    sim = hpmc.HardSphereSimulation(L=args.box_length, params=params)
+    sim = hpmc.SingleBoxEngine(
+        hpmc.ParticleType.Sphere, box_length=args.box_length, radius=args.radius
+    )
 
     print(f" -> Generating {args.particles:,} random particle coordinates...")
 
     # Evenly space them or scatter them randomly across the box volume
-    init_pos = generate_cubic_lattice(args.particles, args.box_length, args.radius)
-    sim.set_particles(init_pos)
+    init_coords = generate_cubic_lattice(args.particles, args.box_length, args.radius)
+    sim.set_coords(*init_coords)
 
-    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert sim.count_overlaps_naive() == 0, (
+        "There should be no particle overlaps initially"
+    )
     assert sim.n_particles() == args.particles
 
     print(" -> Executing C++ batch update sweep...")

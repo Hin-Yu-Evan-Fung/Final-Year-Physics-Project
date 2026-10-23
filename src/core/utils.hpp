@@ -6,6 +6,7 @@
 
 namespace hpmc {
 
+// xoshiro256++ 1.0 paired with a SplitMix64 initialiser
 class PRNG {
   uint64_t s[4];
 
@@ -45,8 +46,8 @@ public:
 
   // Returns random number from [0, N-1]
   inline size_t random_index(size_t N) {
-    uint32_t x = (uint32_t)random_u64();
-    return ((uint64_t)x * (uint64_t)N) >> 32;
+    __uint128_t x = (__uint128_t)random_u64() * N;
+    return (size_t)(x >> 64);
   }
 
   inline double random_double() {

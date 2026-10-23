@@ -1,8 +1,6 @@
 #include "state.hpp"
-#include "particle.hpp"
-#include "particles/hard_sphere.hpp"
-#include "utils.hpp"
-#include <cstring>
+#include <cassert>
+#include <variant>
 
 namespace hpmc {
 
@@ -10,66 +8,58 @@ namespace hpmc {
 //                           Implementation
 // ====================================================================
 
-template <ParticleLike Particle, typename Params>
-void State<Particle, Params>::set_particles(std::span<const Particle> p) {
-  particles_.clear();
-  particles_.resize(p.size());
-  std::memcpy(particles_.data(), p.data(), p.size_bytes());
+void State::set_coords(std::span<const double> x, std::span<const double> y,
+                       std::span<const double> z) {
+  n_ = x.size();
+
+  if (y.size() != n_ || z.size() != n_)
+    throw std::runtime_error("Incoming coordinate span sizes do not match!");
+
+  x_.assign(x.begin(), x.end());
+  y_.assign(y.begin(), y.end());
+  z_.assign(z.begin(), z.end());
 }
 
-template <ParticleLike Particle, typename Params>
-void State<Particle, Params>::move(unsigned idx, const Move<Particle> &m) {
-  particles_[idx] = particles_[idx].move(m);
-  particles_[idx].pos = box_.wrap(particles_[idx].pos);
+// TODO: Expand to work for Dumbbells
+bool State::check_overlaps_naive(size_t idx) const {
+  assert(n_ > 0 && idx < n_);
+
+  const Vec3 pos = pos_at(idx);
+
+  return std::visit(
+      [&](auto &&active_cfg) { return overlaps_naive(active_cfg, idx, pos); },
+      config_);
 }
 
-template <ParticleLike Particle, typename Params>
-bool State<Particle, Params>::try_move(unsigned idx, const Move<Particle> &m) {
-  Particle trial = particles_[idx].move(m);
-  trial.pos = box_.wrap(trial.pos);
-  return !check_overlap(idx, trial) ? (particles_[idx] = trial, true) : false;
+// TODO: Expand to work for Dumbbells
+size_t State::count_overlaps_naive() const {
+  assert(n_ > 0);
+
+  return std::visit(
+      [&](auto &&active_cfg) { return count_overlaps_naive(active_cfg); },
+      config_);
 }
 
-template <ParticleLike Particle, typename Params>
-size_t State<Particle, Params>::row_bytes() {
-  constexpr size_t row_bytes = Move<HardSphere>::dof * sizeof(double);
+void State::translate(size_t idx, const Vec3 &displacement) {
+  assert(n_ > 0 && idx < n_);
 
-  // Ensure your struct size exactly matches the expected row byte width
-  static_assert(
-      sizeof(Move<HardSphere>) == row_bytes,
-      "Struct size mismatch! Check for compiler padding alignment bugs.");
+  curr_idx_ = idx;
+  old_pos_ = pos_at(idx);
+  Vec3 new_pos = box_.wrap(old_pos_ + displacement);
 
-  return row_bytes;
+  x_[curr_idx_] = new_pos.x;
+  y_[curr_idx_] = new_pos.y;
+  z_[curr_idx_] = new_pos.z;
 }
 
-template <ParticleLike Particle, typename Params>
-size_t State<Particle, Params>::count_overlaps() const {
-  size_t overlaps = 0;
-  for (size_t i = 0; i < particles_.size(); ++i)
-    for (size_t j = i + 1; j < particles_.size(); ++j)
-      overlaps += has_overlap(box_, particles_[i], particles_[j], params_);
-  return overlaps;
+void State::reject_move() {
+  assert(curr_idx_ != -1);
+  x_[curr_idx_] = old_pos_.x;
+  y_[curr_idx_] = old_pos_.y;
+  z_[curr_idx_] = old_pos_.z;
+
+  // Reset cache tracker flag
+  curr_idx_ = -1;
 }
-
-template <ParticleLike Particle, typename Params>
-size_t State<Particle, Params>::run_batch(size_t sweeps, double max_disp,
-                                          uint64_t seed) {
-  PRNG rng(seed);
-  const size_t N = size();
-
-  size_t accepted = 0;
-  for (size_t sweep = 0; sweep < sweeps; ++sweep) {
-    for (size_t i = 0; i < N; ++i) {
-      size_t target_idx = rng.random_index(N);
-
-      if (try_move(target_idx, Move<Particle>::generate_move(max_disp, rng)))
-        accepted++;
-    }
-  }
-
-  return accepted;
-}
-
-template class State<HardSphere, HardSphereParams>;
 
 }; // namespace hpmc
