@@ -16,13 +16,15 @@ def calculate_packing_fraction(
 
 
 def calculate_compressibility_factor(
-    positions: np.ndarray, box_length: float, radius: float
+    positions: tuple[np.ndarray, np.ndarray, np.ndarray],
+    box_length: float,
+    radius: float,
 ):
     """
     Thermodynamic observer: Accurately calculates Z by fitting a polynomial
     to a fine histogram of neighbor distances and extrapolating back to contact.
     """
-    N = len(positions)
+    N = len(positions[0])
     TOLERANCE = 0.1
 
     sigma = radius
@@ -31,7 +33,7 @@ def calculate_compressibility_factor(
     rho = N / (box_length**3)
     eta = calculate_packing_fraction(N, box_length, sigma)
 
-    dist_matrix = generate_dist_matrix(positions, box_length=box_length)
+    dist_matrix = generate_dist_matrix(*positions, box_length=box_length)
     rows, cols = np.triu_indices(N, k=1)
     distances = dist_matrix[rows, cols]
 
@@ -60,25 +62,26 @@ def test_thermodynamic_ideal_gas_limit():
     N = 512
     SIGMA = 1.0
     DISP = 2.0
-
-    sim = hpmc.HardSphereSimulation(L=L, params=hpmc.HardSphereParams(SIGMA))
+    sim = hpmc.SingleBoxEngine(hpmc.ParticleType.Sphere, L, 2, radius=SIGMA)
     lattice = generate_cubic_lattice(N, L, SIGMA)
-    sim.set_particles(lattice)
+    sim.set_coords(*lattice)
 
-    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert sim.count_overlaps_naive() == 0, (
+        "There should be no particle overlaps initially"
+    )
 
     # 1. Long Equilibrate Phase: Melt the grid completely
-    sim.run_batch(sweeps=1_000, max_disp=DISP, seed=1)
+    sim.run_batch(sweeps=1_000, max_disp=DISP)
 
     # 2. Production Phase: Sample the system 5 times to smooth out frame noise
     z_samples = []
     SAMPLE_BLOCKS = 5
 
     for i in range(SAMPLE_BLOCKS):
-        sim.run_batch(sweeps=100, max_disp=DISP, seed=i + 2)
+        sim.run_batch(sweeps=100, max_disp=DISP)
 
         # Take a snapshot metric at the end of this block
-        current_pos = sim.get_particles()
+        current_pos = sim.get_coords()
         z_samples.append(calculate_compressibility_factor(current_pos, L, SIGMA))
 
     # Compute the clean ensemble average

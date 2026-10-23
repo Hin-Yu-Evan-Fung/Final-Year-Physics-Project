@@ -27,24 +27,28 @@ FetchContent_MakeAvailable(nanobind)
 # Target: hpmc_ext (Python Module)
 # -----------------------------------------------------------------------------
 
+set(SOURCES
+  src/core/state.cpp
+  src/single_engine.cpp
+)
+
 nanobind_add_module(
   hpmc_ext
   STABLE_ABI
   NB_STATIC
   src/hpmc.cpp
-  src/core/state.cpp
+  ${SOURCES}
 )
 
 target_include_directories(hpmc_ext PRIVATE src)
-target_compile_definitions(hpmc_ext PRIVATE  $<$<CONFIG:Release>:NDEBUG>)
 
 # Target-scoped Compiler Flags (Handles Clang vs GCC for macOS/Linux)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # Apple Clang (macOS) & LLVM Clang (Linux/Windows-MinGW)
-  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-O3>)
+  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3>)
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Pure GCC optimizations
-  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-O3 -march=native -ffast-math>)
+  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3 -march=native -ffast-math -fopt-info-vec-optimized>)
 endif()
 
 set_target_properties(hpmc_ext PROPERTIES
@@ -78,7 +82,7 @@ file(GLOB_RECURSE GTEST_SOURCES
     "gtest/*.cpp"
 )
 
-add_executable(hpmc_tests ${GTEST_SOURCES})
+add_executable(hpmc_tests ${SOURCES} ${GTEST_SOURCES})
 
 target_include_directories(hpmc_tests PRIVATE src)
 target_link_libraries(hpmc_tests PRIVATE gtest_main)

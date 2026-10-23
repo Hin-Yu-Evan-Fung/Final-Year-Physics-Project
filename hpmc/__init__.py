@@ -1,3 +1,3 @@
-from .core import HardSphereSimulation, HardSphereParams
+from .core import ParticleType, SingleBoxEngine
 
-__all__ = ["HardSphereSimulation", "HardSphereParams"]
+__all__ = ["ParticleType", "SingleBoxEngine"]
