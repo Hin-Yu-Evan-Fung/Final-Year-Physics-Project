@@ -28,7 +28,8 @@ FetchContent_MakeAvailable(nanobind)
 # -----------------------------------------------------------------------------
 
 set(SOURCES
-  src/core/state.cpp
+  src/state/state.cpp
+  src/state/cell_list.cpp
   src/single_engine.cpp
 )
 
@@ -48,7 +49,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3>)
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Pure GCC optimizations
-  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3 -march=native -ffast-math -fopt-info-vec-optimized>)
+  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3 -march=native -ffast-math>)
 endif()
 
 set_target_properties(hpmc_ext PROPERTIES
