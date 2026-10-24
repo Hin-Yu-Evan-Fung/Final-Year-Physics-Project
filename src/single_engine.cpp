@@ -18,13 +18,7 @@ size_t SingleBoxEngine::run_batch(size_t sweeps, double max_disp) {
       size_t target_idx = rng_.random_index(N);
 
       // TODO: Add rotate moves and bias function
-      state_.translate(target_idx, random_disp(max_disp));
-
-      if (state_.check_overlaps_naive(target_idx)) {
-        state_.reject_move();
-      } else {
-        accepted++;
-      }
+      accepted += state_.try_translate(target_idx, random_disp(max_disp));
     }
   }
 
