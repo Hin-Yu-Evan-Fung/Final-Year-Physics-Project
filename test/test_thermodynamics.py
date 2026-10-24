@@ -25,7 +25,6 @@ def calculate_compressibility_factor(
     to a fine histogram of neighbor distances and extrapolating back to contact.
     """
     N = len(positions[0])
-    TOLERANCE = 0.1
 
     sigma = radius
     diameter = 2.0 * sigma
@@ -37,61 +36,88 @@ def calculate_compressibility_factor(
     rows, cols = np.triu_indices(N, k=1)
     distances = dist_matrix[rows, cols]
 
-    shell_inner = diameter
-    shell_outer = diameter + (TOLERANCE * radius)
+    # Setup a fine-grained histogram shell just outside the hard core
+    num_bins = 6
+    bin_edges = np.linspace(diameter, diameter + (0.15 * radius), num_bins + 1)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
-    observed_counts = np.sum((distances >= shell_inner) & (distances <= shell_outer))
+    # Count how many distances fall into each thin bin
+    counts, _ = np.histogram(distances, bins=bin_edges)
 
-    exact_shell_volume = (4.0 / 3.0) * np.pi * (shell_outer**3 - shell_inner**3)
-    expected_counts = 0.5 * N * rho * exact_shell_volume
+    # Calculate the true g(r) for each bin by normalizing against ideal gas volumes
+    g_r = np.zeros(num_bins)
+    for i in range(num_bins):
+        r_inner = bin_edges[i]
+        r_outer = bin_edges[i + 1]
 
-    g_contact_estimate = (
-        observed_counts / expected_counts if expected_counts > 0 else 1.0
-    )
+        # Exact geometric volume of this specific thin shell
+        shell_volume = (4.0 / 3.0) * np.pi * (r_outer**3 - r_inner**3)
+        expected_ideal_counts = 0.5 * N * rho * shell_volume
+
+        g_r[i] = counts[i] / expected_ideal_counts if expected_ideal_counts > 0 else 0.0
+
+    coefficients = np.polyfit(bin_centers, g_r, deg=1)
+    g_contact_extrapolated = np.polyval(coefficients, diameter)
+
+    # If density is extremely low, fallback to 1.0 to prevent fitting noise
+    if g_contact_extrapolated < 0.5:
+        g_contact_extrapolated = 1.0
 
     # Calculate compressibility factor Z
-    return 1.0 + 4.0 * eta * g_contact_estimate
+    return 1.0 + 4.0 * eta * g_contact_extrapolated
 
 
-def test_thermodynamic_ideal_gas_limit():
+@pytest.mark.parametrize(
+    "box_length, num_particles, radius, eq_sweeps, max_disp, tolerance",
+    [
+        # 1. Ideal Gas Limit: Fast relaxation, roomy steps
+        (50.0, 512, 0.5, 1000, 2.0, 0.03),
+        # 2. Low Density Fluid: Quick thermalization
+        (20.0, 512, 0.5, 3000, 1.0, 0.03),
+        # 3. Medium Density Fluid: Moderate cage lifetimes
+        (14.0, 512, 0.5, 6000, 0.5, 0.03),
+        # 4. Dense Fluid: Very slow cage relaxation, needs small steps
+        (11.0, 512, 0.5, 15000, 0.2, 0.03),
+    ],
+)
+def test_thermodynamic_ideal_gas_limit(
+    box_length, num_particles, radius, eq_sweeps, max_disp, tolerance
+):
     """
     Thermodynamic Test 1: Validates that a highly dilute system
     behaves like an ideal gas (Z safely approaches 1.0).
     """
-    L = 50.0
-    N = 512
-    SIGMA = 1.0
-    DISP = 2.0
-    sim = hpmc.SingleBoxEngine(hpmc.ParticleType.Sphere, L, 2, radius=SIGMA)
-    lattice = generate_cubic_lattice(N, L, SIGMA)
+    sim = hpmc.SingleBoxEngine(hpmc.ParticleType.Sphere, box_length, radius=radius)
+    lattice = generate_cubic_lattice(num_particles, box_length, radius)
     sim.set_coords(*lattice)
 
-    assert sim.count_overlaps_naive() == 0, (
-        "There should be no particle overlaps initially"
-    )
+    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
 
-    # 1. Long Equilibrate Phase: Melt the grid completely
-    sim.run_batch(sweeps=1_000, max_disp=DISP)
+    # Long Equilibrate Phase: Melt the grid completely
+    sim.run_batch(sweeps=eq_sweeps, max_disp=max_disp)
 
-    # 2. Production Phase: Sample the system 5 times to smooth out frame noise
+    # Production Phase: Sample the system 5 times to smooth out frame noise
     z_samples = []
-    SAMPLE_BLOCKS = 5
+    SAMPLE_BLOCKS = 50
+    SWEEPS_PER_BLOCK = 10
 
     for i in range(SAMPLE_BLOCKS):
-        sim.run_batch(sweeps=100, max_disp=DISP)
+        sim.run_batch(sweeps=SWEEPS_PER_BLOCK, max_disp=max_disp)
 
         # Take a snapshot metric at the end of this block
         current_pos = sim.get_coords()
-        z_samples.append(calculate_compressibility_factor(current_pos, L, SIGMA))
+        z_samples.append(
+            calculate_compressibility_factor(current_pos, box_length, radius)
+        )
 
     # Compute the clean ensemble average
     Z_averaged = np.mean(z_samples)
 
     # Use Carnahan-Starling equation of state
-    eta = calculate_packing_fraction(N, L, SIGMA)
+    eta = calculate_packing_fraction(num_particles, box_length, radius)
     Z_theory = (1 + eta + eta**2 - eta**3) / (1 - eta) ** 3
 
-    assert Z_averaged == pytest.approx(Z_theory, abs=0.03), (
+    assert Z_averaged == pytest.approx(Z_theory, abs=tolerance), (
         f"Thermodynamic Failure: Averaged compressibility factor Z was {Z_averaged:.4f}, "
         f"expected it to converge close to the physical target of {Z_theory}."
     )

@@ -13,9 +13,6 @@ class PRNG {
 public:
   PRNG() : PRNG(0x6B51FF299F6A3AEEULL) {}
   PRNG(uint64_t seed) {
-    if (seed == 0)
-      seed = 0x123456789ABCDEFULL;
-
     auto splitmix64 = [&seed]() -> uint64_t {
       seed += 0x9E3779B97F4A7C15ULL;
       uint64_t z = seed;
@@ -50,9 +47,10 @@ public:
     return (size_t)(x >> 64);
   }
 
-  inline double random_double() {
+  inline double random_double(double min = 0.0, double max = 1.0) {
     constexpr double MULTIPLIER = 1.0 / (1ULL << 53);
-    return (random_u64() >> 11) * MULTIPLIER;
+    const double d = (random_u64() >> 11) * MULTIPLIER;
+    return min + (max - min) * d;
   }
 };
 

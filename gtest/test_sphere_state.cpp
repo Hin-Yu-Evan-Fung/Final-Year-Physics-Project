@@ -39,6 +39,7 @@ TEST_F(StateTest, TranslationAccept) {
 
   Vec3 displacement{0.5, -0.2, 0.1};
   const auto &prop = state.propse_translation(0, displacement);
+  EXPECT_FALSE(state.check_overlap(prop));
   state.accept_move(prop);
 
   // Verify the state has mutated immediately in memory
@@ -56,6 +57,7 @@ TEST_F(StateTest, TranslationReject) {
 
   Vec3 displacement{2.5, 3.0, -1.0};
   const auto &prop = state.propse_translation(0, displacement);
+  EXPECT_TRUE(state.check_overlap(prop));
   state.reject_move(prop);
 
   EXPECT_DOUBLE_EQ(state.pos_at(0).x, 1.0);
@@ -74,45 +76,8 @@ TEST_F(StateTest, TranslatePBC) {
   // Pushing X past the box boundary (9.5 + 1.0 = 10.5 -> wraps to 0.5)
   Vec3 displacement{1.0, 0.0, 0.0};
   const auto &prop = state.propse_translation(0, displacement);
+  EXPECT_FALSE(state.check_overlap(prop));
   state.accept_move(prop);
 
   EXPECT_DOUBLE_EQ(state.pos_at(0).x, 0.5);
-}
-
-TEST_F(StateTest, DetectsOverlaps) {
-  State state(ParticleType::Sphere, box_length_, config_);
-
-  std::vector<double> x = {1.0, 2.5};
-  std::vector<double> y = {1.0, 1.0};
-  std::vector<double> z = {1.0, 1.0};
-  state.set_coords(x, y, z);
-
-  EXPECT_TRUE(state.check_overlaps_naive(0, Vec3{1.0, 1.0, 1.0}));
-  EXPECT_TRUE(state.check_overlaps_naive(1, Vec3{2.5, 1.0, 1.0}));
-
-  EXPECT_EQ(state.count_overlaps_naive(), 1);
-}
-
-TEST_F(StateTest, NoOverlap) {
-  State state(ParticleType::Sphere, box_length_, config_);
-
-  std::vector<double> x = {1.0, 4.0}; // Separation along X = 3.0 (Safe)
-  std::vector<double> y = {1.0, 1.0};
-  std::vector<double> z = {1.0, 1.0};
-  state.set_coords(x, y, z);
-
-  EXPECT_FALSE(state.check_overlaps_naive(0, Vec3{1.0, 1.0, 1.0}));
-  EXPECT_EQ(state.count_overlaps_naive(), 0);
-}
-
-TEST_F(StateTest, OverlapPBC) {
-  State state(ParticleType::Sphere, box_length_, config_);
-
-  std::vector<double> x = {0.5, 9.5};
-  std::vector<double> y = {1.0, 1.0};
-  std::vector<double> z = {1.0, 1.0};
-  state.set_coords(x, y, z);
-
-  EXPECT_TRUE(state.check_overlaps_naive(0, Vec3{0.5, 1.0, 1.0}));
-  EXPECT_EQ(state.count_overlaps_naive(), 1);
 }

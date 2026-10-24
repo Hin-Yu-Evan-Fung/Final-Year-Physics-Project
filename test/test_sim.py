@@ -21,9 +21,7 @@ def test_hard_core_overlap_matrix_method():
     init_coords = generate_cubic_lattice(N, L, SIGMA)
     sim.set_coords(*init_coords)
 
-    assert sim.count_overlaps_naive() == 0, (
-        "There should be no particle overlaps initially"
-    )
+    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
 
     sim.run_batch(sweeps=SWEEPS, max_disp=MAX_DISP)
 
