@@ -33,8 +33,8 @@ NB_MODULE(hpmc_ext, m) {
           nb::arg("type"), nb::arg("box_length"), nb::arg("seed") = 1,
           nb::arg("kwargs"))
       .def("n", [](SingleBoxEngine &e) { return e.state().n(); })
-      .def("count_overlaps_naive",
-           [](SingleBoxEngine &e) { return e.state().count_overlaps_naive(); })
+      .def("count_overlaps",
+           [](SingleBoxEngine &e) { return e.state().count_global_overlaps(); })
       .def("run_batch", &SingleBoxEngine::run_batch, nb::arg("sweeps"),
            nb::arg("max_disp"))
       .def(

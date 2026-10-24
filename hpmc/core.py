@@ -35,9 +35,9 @@ class SingleBoxEngine:
         """Returns particles as a np.ndarray, indexed by [particle, degree of freedom]"""
         return self._engine.get_coords()
 
-    def count_overlaps_naive(self) -> int:
+    def count_overlaps(self) -> int:
         """Returns number of overlaps in the system"""
-        return self._engine.count_overlaps_naive()
+        return self._engine.count_overlaps()
 
     def __validate_moves(self) -> None:
         if self.n_particles() == 0:

@@ -36,37 +36,30 @@ void State::set_coords(std::span<const double> x, std::span<const double> y,
 }
 
 // TODO: Expand to work for Dumbbells
-bool State::check_overlaps_naive(size_t idx, const Vec3 &pos) const {
-  assert(n_ > 0 && idx < n_);
-
-  return std::visit(
-      [&](auto &&active_cfg) { return overlaps_naive(active_cfg, idx, pos); },
-      config_);
-}
-
-// TODO: Expand to work for Dumbbells
-size_t State::count_overlaps_naive() const {
-  assert(n_ > 0);
-
-  return std::visit(
-      [&](auto &&active_cfg) { return count_overlaps_naive(active_cfg); },
-      config_);
-}
-
-// TODO: Expand to work for Dumbbells
-bool State::check_overlaps(const MoveProposal &prop) const {
+bool State::check_overlap(const MoveProposal &prop) const {
   assert(n_ > 0 && prop.idx < n_);
 
   return std::visit(
-      [&](auto &&active_cfg) { return overlaps(active_cfg, prop); }, config_);
+      [&](auto &&active_cfg) { return check_overlap(active_cfg, prop); },
+      config_);
 }
 
 // TODO: Expand to work for Dumbbells
-size_t State::count_overlaps() const {
+size_t State::count_local_overlaps(size_t idx) const {
   assert(n_ > 0);
 
   return std::visit(
-      [&](auto &&active_cfg) { return count_overlaps(active_cfg); }, config_);
+      [&](auto &&active_cfg) { return count_local_overlap(active_cfg, idx); },
+      config_);
+}
+
+// TODO: Expand to work for Dumbbells
+size_t State::count_global_overlaps() const {
+  assert(n_ > 0);
+
+  return std::visit(
+      [&](auto &&active_cfg) { return count_global_overlaps(active_cfg); },
+      config_);
 }
 
 MoveProposal State::propse_translation(size_t idx, const Vec3 &displacement) {

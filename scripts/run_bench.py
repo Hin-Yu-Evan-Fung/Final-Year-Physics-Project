@@ -37,9 +37,7 @@ def main():
     init_coords = generate_cubic_lattice(args.particles, args.box_length, args.radius)
     sim.set_coords(*init_coords)
 
-    assert sim.count_overlaps_naive() == 0, (
-        "There should be no particle overlaps initially"
-    )
+    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
     assert sim.n_particles() == args.particles
 
     print(" -> Executing C++ batch update sweep...")
