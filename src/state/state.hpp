@@ -31,11 +31,10 @@ class State {
   size_t n_ = 0;
 
   template <typename Config>
-  bool check_overlap(const Config &config, const MoveProposal &prop) const;
+  bool overlap(const Config &config, const MoveProposal &prop) const;
   template <typename Config>
-  size_t count_local_overlap(const Config &config, size_t idx) const;
-  template <typename Config>
-  size_t count_global_overlaps(const Config &config) const;
+  size_t local_overlaps(const Config &config, size_t idx) const;
+  template <typename Config> size_t global_overlaps(const Config &config) const;
 
 public:
   State(ParticleType type, double box_length, ParticleConfig config)
@@ -67,8 +66,7 @@ public:
 //=========================================
 
 template <typename Config>
-bool State::check_overlap(const Config &config,
-                          const MoveProposal &prop) const {
+bool State::overlap(const Config &config, const MoveProposal &prop) const {
   const auto &local_cells = cell_list_.get_neighbours(prop.new_cell);
 
   for (int cell_idx : local_cells) {
@@ -87,7 +85,7 @@ bool State::check_overlap(const Config &config,
 }
 
 template <typename Config>
-size_t State::count_local_overlap(const Config &config, size_t idx) const {
+size_t State::local_overlaps(const Config &config, size_t idx) const {
   const int cell = cell_list_.get_particle_cell(idx);
   const Vec3 &pos = pos_at(idx);
   const auto &local_cells = cell_list_.get_neighbours(cell);
@@ -108,7 +106,7 @@ size_t State::count_local_overlap(const Config &config, size_t idx) const {
 }
 
 template <typename Config>
-size_t State::count_global_overlaps(const Config &config) const {
+size_t State::global_overlaps(const Config &config) const {
   size_t overlaps = 0;
 
   for (int cell_idx = 0; cell_idx < cell_list_.total_cells(); ++cell_idx) {

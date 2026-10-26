@@ -27,7 +27,7 @@ def main():
 
     args = parser.parse_args()
 
-    sim = hpmc.SingleBoxEngine(
+    state = hpmc.State(
         hpmc.ParticleType.Sphere, box_length=args.box_length, radius=args.radius
     )
 
@@ -35,12 +35,14 @@ def main():
 
     # Evenly space them or scatter them randomly across the box volume
     init_coords = generate_cubic_lattice(args.particles, args.box_length, args.radius)
-    sim.set_coords(*init_coords)
+    state.set_coords(*init_coords)
 
-    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
-    assert sim.n_particles() == args.particles
+    assert state.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert state.n_particles() == args.particles
 
     print(" -> Executing C++ batch update sweep...")
+
+    sim = hpmc.SingleBoxEngine(state)
 
     start_time = time.perf_counter()
     accepted = sim.run_batch(sweeps=args.sweeps, max_disp=0.1)

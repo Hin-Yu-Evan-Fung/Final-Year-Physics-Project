@@ -87,13 +87,14 @@ def test_thermodynamic_ideal_gas_limit(
     Thermodynamic Test 1: Validates that a highly dilute system
     behaves like an ideal gas (Z safely approaches 1.0).
     """
-    sim = hpmc.SingleBoxEngine(hpmc.ParticleType.Sphere, box_length, radius=radius)
+    state = hpmc.State(hpmc.ParticleType.Sphere, box_length, radius=radius)
     lattice = generate_cubic_lattice(num_particles, box_length, radius)
-    sim.set_coords(*lattice)
+    state.set_coords(*lattice)
 
-    assert sim.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert state.count_overlaps() == 0, "There should be no particle overlaps initially"
 
     # Long Equilibrate Phase: Melt the grid completely
+    sim = hpmc.SingleBoxEngine(state)
     sim.run_batch(sweeps=eq_sweeps, max_disp=max_disp)
 
     # Production Phase: Sample the system 5 times to smooth out frame noise
@@ -105,7 +106,7 @@ def test_thermodynamic_ideal_gas_limit(
         sim.run_batch(sweeps=SWEEPS_PER_BLOCK, max_disp=max_disp)
 
         # Take a snapshot metric at the end of this block
-        current_pos = sim.get_coords()
+        current_pos = state.get_coords()
         z_samples.append(
             calculate_compressibility_factor(current_pos, box_length, radius)
         )

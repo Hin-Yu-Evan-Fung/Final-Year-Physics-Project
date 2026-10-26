@@ -11,7 +11,7 @@ Vec3 SingleBoxEngine::random_disp(double max_disp) {
 }
 
 size_t SingleBoxEngine::run_batch(size_t sweeps, double max_disp) {
-  const size_t N = state_.n();
+  const size_t N = state_->n();
 
   size_t accepted = 0;
   for (size_t sweep = 0; sweep < sweeps; ++sweep) {
@@ -19,11 +19,11 @@ size_t SingleBoxEngine::run_batch(size_t sweeps, double max_disp) {
       size_t p_idx = rng_.random_index(N);
 
       const MoveProposal &prop =
-          state_.propse_translation(p_idx, random_disp(max_disp));
+          state_->propse_translation(p_idx, random_disp(max_disp));
 
       // TODO: Add rotate moves and bias function
-      if (!state_.check_overlap(prop)) {
-        state_.accept_translation(prop);
+      if (!state_->check_overlap(prop)) {
+        state_->accept_translation(prop);
         accepted++;
       }
     }
