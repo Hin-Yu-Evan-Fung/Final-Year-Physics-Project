@@ -1,6 +1,7 @@
 #pragma once
 
 #include <nanobind/ndarray.h>
+#include <string>
 
 namespace nb = nanobind;
 
