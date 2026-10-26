@@ -43,3 +43,50 @@ def generate_cubic_lattice(
         np.ravel(y)[:num_particles],
         np.ravel(z)[:num_particles],
     )
+
+
+def generate_lattice(radius = 1, box_length = 10, structure = "fcc"):
+
+    diameter = 2 * radius
+
+    a1 = np.array([diameter,0])
+    a2 = np.array([diameter/2,diameter*(np.sqrt(3)/2)])
+
+    layer_spacing = np.sqrt(2/3) * diameter
+
+    # The coordinate shift from the layer below:
+
+    shifts = [np.zeros(3),  # A
+              (a1 + a2)/3,  # B
+              2*(a1 + a2)/3 # C
+              ]
+    
+    if structure == "fcc":
+        period = 3
+    else:
+        period = 2
+
+    positions = []
+    k = 0 # layer number in z direction
+
+    while radius + k * layer_spacing < box_length - radius:
+        sx,sy = shifts[k%period]
+        z = radius + k * layer_spacing
+
+        j = 0 # layer number but in y direction
+        while radius + j * a2[1] + sy < box_length - radius:
+            y = radius + j*a2[1] + sy
+
+            x_start = radius + (j%2) * radius + sx
+
+            for x in np.arange(x_start,box_length - radius - 1e-10,diameter):
+                positions.append((x,y,z))
+
+            j+=1
+
+        k+=1
+
+    x,y,z = np.array(positions)
+
+    return x,y,z
+
