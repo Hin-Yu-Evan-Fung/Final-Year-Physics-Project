@@ -3,23 +3,34 @@
 namespace hpmc {
 
 void CellList::precompute_neighbours() {
+
+  // clang-format off
+  static const int OFFSETS[27][3] = {
+    // Center (1)
+    { 0,  0,  0},
+    // Faces (6)
+    { 1,  0,  0}, {-1,  0,  0}, { 0,  1,  0}, { 0, -1,  0}, { 0,  0,  1}, { 0,  0, -1},
+    // Edges (12)
+    { 1,  1,  0}, { 1, -1,  0}, {-1,  1,  0}, {-1, -1,  0},
+    { 1,  0,  1}, { 1,  0, -1}, {-1,  0,  1}, {-1,  0, -1},
+    { 0,  1,  1}, { 0,  1, -1}, { 0, -1,  1}, { 0, -1, -1},
+    // Corners (8)
+    { 1,  1,  1}, { 1,  1, -1}, { 1, -1,  1}, { 1, -1, -1},
+    {-1,  1,  1}, {-1,  1, -1}, {-1, -1,  1}, {-1, -1, -1}
+  };
+  // clang-format on
+
   neighbours_.resize(total_cells_);
   for (int cell_idx = 0; cell_idx < total_cells_; ++cell_idx) {
     int cx, cy, cz;
-
     index_to_3d(cell_idx, cx, cy, cz);
 
-    int n_count = 0;
-    for (int dx = -1; dx <= 1; ++dx) {
-      for (int dy = -1; dy <= 1; ++dy) {
-        for (int dz = -1; dz <= 1; ++dz) {
-          int nx = grid_pbc_wrap(cx + dx, x_cells_);
-          int ny = grid_pbc_wrap(cy + dy, y_cells_);
-          int nz = grid_pbc_wrap(cz + dz, z_cells_);
-          neighbours_[cell_idx][n_count++] =
-              nx + ny * x_cells_ + nz * x_cells_ * y_cells_;
-        }
-      }
+    for (int i = 0; i < 27; ++i) {
+      int nx = grid_pbc_wrap(cx + OFFSETS[i][0], x_cells_);
+      int ny = grid_pbc_wrap(cy + OFFSETS[i][1], y_cells_);
+      int nz = grid_pbc_wrap(cz + OFFSETS[i][2], z_cells_);
+
+      neighbours_[cell_idx][i] = nx + ny * x_cells_ + nz * x_cells_ * y_cells_;
     }
   }
 }
