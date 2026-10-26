@@ -46,10 +46,10 @@ target_include_directories(hpmc_ext PRIVATE src)
 # Target-scoped Compiler Flags (Handles Clang vs GCC for macOS/Linux)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # Apple Clang (macOS) & LLVM Clang (Linux/Windows-MinGW)
-  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3>)
+  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3 -flto>)
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Pure GCC optimizations
-  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3 -march=native -ffast-math>)
+  target_compile_options(hpmc_ext PRIVATE $<$<CONFIG:Release>:-g -O3 -flto -march=native -ffast-math>)
 endif()
 
 set_target_properties(hpmc_ext PROPERTIES
