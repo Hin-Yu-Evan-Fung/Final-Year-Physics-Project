@@ -40,8 +40,7 @@ bool State::check_overlap(const MoveProposal &prop) const {
   assert(n_ > 0 && prop.idx < n_);
 
   return std::visit(
-      [&](auto &&active_cfg) { return check_overlap(active_cfg, prop); },
-      config_);
+      [&](auto &&active_cfg) { return overlap(active_cfg, prop); }, config_);
 }
 
 // TODO: Expand to work for Dumbbells
@@ -49,7 +48,7 @@ size_t State::count_local_overlaps(size_t idx) const {
   assert(n_ > 0);
 
   return std::visit(
-      [&](auto &&active_cfg) { return count_local_overlap(active_cfg, idx); },
+      [&](auto &&active_cfg) { return local_overlaps(active_cfg, idx); },
       config_);
 }
 
@@ -58,8 +57,7 @@ size_t State::count_global_overlaps() const {
   assert(n_ > 0);
 
   return std::visit(
-      [&](auto &&active_cfg) { return count_global_overlaps(active_cfg); },
-      config_);
+      [&](auto &&active_cfg) { return global_overlaps(active_cfg); }, config_);
 }
 
 MoveProposal State::propse_translation(size_t idx, const Vec3 &displacement) {
