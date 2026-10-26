@@ -31,6 +31,7 @@ set(SOURCES
   src/state/state.cpp
   src/state/cell_list.cpp
   src/single_engine.cpp
+  src/lsmc_engine.cpp
 )
 
 nanobind_add_module(

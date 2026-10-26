@@ -44,11 +44,14 @@ bool State::check_overlap(const MoveProposal &prop) const {
 }
 
 // TODO: Expand to work for Dumbbells
-size_t State::count_local_overlaps(size_t idx) const {
+size_t State::count_local_overlaps(size_t idx, const Vec3 &pos,
+                                   size_t cell) const {
   assert(n_ > 0);
 
   return std::visit(
-      [&](auto &&active_cfg) { return local_overlaps(active_cfg, idx); },
+      [&](auto &&active_cfg) {
+        return local_overlaps(active_cfg, idx, pos, cell);
+      },
       config_);
 }
 

@@ -112,12 +112,14 @@ TEST(OverlapFuzzTest, OverlapTracking) {
     size_t p_idx = rng.random_index(N);
     Vec3 displacement = random_vec3(rng, 0.3);
 
-    int old_overlaps = state.count_local_overlaps(p_idx);
-
     auto prop = state.propse_translation(p_idx, displacement);
+
+    int old_overlaps =
+        state.count_local_overlaps(p_idx, prop.old_pos, prop.old_cell);
+    int new_overlaps =
+        state.count_local_overlaps(p_idx, prop.new_pos, prop.new_cell);
     state.accept_translation(prop);
 
-    int new_overlaps = state.count_local_overlaps(p_idx);
     // Use difference in overlaps to update the total overlaps
     total_overlaps += new_overlaps - old_overlaps;
 
