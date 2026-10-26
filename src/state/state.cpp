@@ -72,21 +72,18 @@ MoveProposal State::propse_translation(size_t idx, const Vec3 &displacement) {
   prop.new_pos = box_.wrap(prop.old_pos + displacement);
   prop.new_cell = cell_list_.get_cell_index(prop.new_pos);
 
-  cell_list_.remove(idx, prop.old_cell);
-
   return prop;
 }
 
-void State::accept_move(const MoveProposal &prop) {
+void State::accept_translation(const MoveProposal &prop) {
   x_[prop.idx] = prop.new_pos.x;
   y_[prop.idx] = prop.new_pos.y;
   z_[prop.idx] = prop.new_pos.z;
 
-  cell_list_.insert(prop.idx, prop.new_cell);
-}
-
-void State::reject_move(const MoveProposal &prop) {
-  cell_list_.insert(prop.idx, prop.old_cell);
+  if (prop.new_cell != prop.old_cell) {
+    cell_list_.remove(prop.idx, prop.old_cell);
+    cell_list_.insert(prop.idx, prop.new_cell);
+  }
 }
 
 }; // namespace hpmc

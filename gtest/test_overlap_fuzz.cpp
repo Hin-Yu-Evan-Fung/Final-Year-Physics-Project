@@ -81,9 +81,7 @@ TEST(OverlapFuzzTest, CellListMatchesNaiveOracle) {
 
     // Ensure overlaps do occur
     if (rng.random_double() > 0.1) {
-      state.accept_move(prop);
-    } else {
-      state.reject_move(prop);
+      state.accept_translation(prop);
     }
 
     size_t overlap_count_naive = count_overlaps_naive(state, config);
@@ -117,7 +115,7 @@ TEST(OverlapFuzzTest, OverlapTracking) {
     int old_overlaps = state.count_local_overlaps(p_idx);
 
     auto prop = state.propse_translation(p_idx, displacement);
-    state.accept_move(prop);
+    state.accept_translation(prop);
 
     int new_overlaps = state.count_local_overlaps(p_idx);
     // Use difference in overlaps to update the total overlaps

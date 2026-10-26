@@ -58,10 +58,8 @@ public:
   size_t count_local_overlaps(size_t idx) const;
   size_t count_global_overlaps() const;
 
-  // WARNING: Cell list is temporarily invalid before accept/reject
   MoveProposal propse_translation(size_t idx, const Vec3 &displacement);
-  void accept_move(const MoveProposal &prop);
-  void reject_move(const MoveProposal &prop);
+  void accept_translation(const MoveProposal &prop);
 };
 
 //=========================================

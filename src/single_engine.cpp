@@ -22,10 +22,8 @@ size_t SingleBoxEngine::run_batch(size_t sweeps, double max_disp) {
           state_.propse_translation(p_idx, random_disp(max_disp));
 
       // TODO: Add rotate moves and bias function
-      if (state_.check_overlap(prop)) {
-        state_.reject_move(prop);
-      } else {
-        state_.accept_move(prop);
+      if (!state_.check_overlap(prop)) {
+        state_.accept_translation(prop);
         accepted++;
       }
     }

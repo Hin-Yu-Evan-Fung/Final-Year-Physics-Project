@@ -40,7 +40,7 @@ TEST_F(StateTest, TranslationAccept) {
   Vec3 displacement{0.5, -0.2, 0.1};
   const auto &prop = state.propse_translation(0, displacement);
   EXPECT_FALSE(state.check_overlap(prop));
-  state.accept_move(prop);
+  state.accept_translation(prop);
 
   // Verify the state has mutated immediately in memory
   EXPECT_DOUBLE_EQ(state.pos_at(0).x, 1.5);
@@ -58,7 +58,6 @@ TEST_F(StateTest, TranslationReject) {
   Vec3 displacement{2.5, 3.0, -1.0};
   const auto &prop = state.propse_translation(0, displacement);
   EXPECT_TRUE(state.check_overlap(prop));
-  state.reject_move(prop);
 
   EXPECT_DOUBLE_EQ(state.pos_at(0).x, 1.0);
   EXPECT_DOUBLE_EQ(state.pos_at(0).y, 1.0);
@@ -77,7 +76,7 @@ TEST_F(StateTest, TranslatePBC) {
   Vec3 displacement{1.0, 0.0, 0.0};
   const auto &prop = state.propse_translation(0, displacement);
   EXPECT_FALSE(state.check_overlap(prop));
-  state.accept_move(prop);
+  state.accept_translation(prop);
 
   EXPECT_DOUBLE_EQ(state.pos_at(0).x, 0.5);
 }
