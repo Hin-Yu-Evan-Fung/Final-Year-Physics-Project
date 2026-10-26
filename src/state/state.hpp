@@ -33,7 +33,8 @@ class State {
   template <typename Config>
   bool overlap(const Config &config, const MoveProposal &prop) const;
   template <typename Config>
-  size_t local_overlaps(const Config &config, size_t idx) const;
+  size_t local_overlaps(const Config &config, size_t idx, const Vec3 &pos,
+                        size_t cell) const;
   template <typename Config> size_t global_overlaps(const Config &config) const;
 
 public:
@@ -54,7 +55,7 @@ public:
                   std::span<const double> z);
 
   bool check_overlap(const MoveProposal &prop) const;
-  size_t count_local_overlaps(size_t idx) const;
+  size_t count_local_overlaps(size_t idx, const Vec3 &pos, size_t cell) const;
   size_t count_global_overlaps() const;
 
   MoveProposal propse_translation(size_t idx, const Vec3 &displacement);
@@ -85,9 +86,8 @@ bool State::overlap(const Config &config, const MoveProposal &prop) const {
 }
 
 template <typename Config>
-size_t State::local_overlaps(const Config &config, size_t idx) const {
-  const int cell = cell_list_.get_particle_cell(idx);
-  const Vec3 &pos = pos_at(idx);
+size_t State::local_overlaps(const Config &config, size_t idx, const Vec3 &pos,
+                             size_t cell) const {
   const auto &local_cells = cell_list_.get_neighbours(cell);
   size_t overlaps = 0;
 

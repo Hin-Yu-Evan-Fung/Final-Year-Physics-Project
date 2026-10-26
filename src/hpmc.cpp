@@ -1,3 +1,5 @@
+#include "lsmc_engine.hpp"
+#include "nanobind/ndarray.h"
 #include "nb_utils.hpp"
 #include "single_engine.hpp"
 #include "state/state.hpp"
@@ -36,9 +38,9 @@ NB_MODULE(hpmc_ext, m) {
       // Zero-copy array input using your span implementation
       .def(
           "set_coords",
-          [](State &s, nb::ndarray<double, nb::ndim<1>> x,
-             nb::ndarray<nb::numpy, double, nb::ndim<1>> y,
-             nb::ndarray<nb::numpy, double, nb::ndim<1>> z) {
+          [](State &s, nb::ndarray<double, nb::ndim<1>, nb::c_contig> x,
+             nb::ndarray<nb::numpy, double, nb::ndim<1>, nb::c_contig> y,
+             nb::ndarray<nb::numpy, double, nb::ndim<1>, nb::c_contig> z) {
             size_t N = x.shape(0);
             if (y.shape(0) != N || z.shape(0) != N) {
               throw nb::value_error(
@@ -57,11 +59,11 @@ NB_MODULE(hpmc_ext, m) {
           [](State &s) {
             size_t shape[1] = {s.n()};
             return std::make_tuple(
-                nb::ndarray<nb::numpy, double, nb::ndim<1>>(
+                nb::ndarray<nb::numpy, double, nb::ndim<1>, nb::c_contig>(
                     const_cast<double *>(s.x().data()), 1, shape, nb::handle()),
-                nb::ndarray<nb::numpy, double, nb::ndim<1>>(
+                nb::ndarray<nb::numpy, double, nb::ndim<1>, nb::c_contig>(
                     const_cast<double *>(s.y().data()), 1, shape, nb::handle()),
-                nb::ndarray<nb::numpy, double, nb::ndim<1>>(
+                nb::ndarray<nb::numpy, double, nb::ndim<1>, nb::c_contig>(
                     const_cast<double *>(s.z().data()), 1, shape,
                     nb::handle()));
           },
@@ -75,4 +77,55 @@ NB_MODULE(hpmc_ext, m) {
           nb::arg("state"), nb::arg("seed") = 1)
       .def("run_batch", &SingleBoxEngine::run_batch, nb::arg("sweeps"),
            nb::arg("max_disp"));
+
+  nb::enum_<Lattice>(m, "Lattice")
+      .value("A", Lattice::A)
+      .value("B", Lattice::B);
+
+  nb::class_<LSMCEngine>(m, "LSMCEngine")
+      .def(
+          "__init__",
+          [](LSMCEngine *self, std::shared_ptr<State> state_A,
+             std::shared_ptr<State> state_B, int min_M, int max_M,
+             uint64_t seed) {
+            new (self) LSMCEngine(state_A, state_B, min_M, max_M, seed);
+          },
+          nb::arg("state_A"), nb::arg("state_B"), nb::arg("min_M"),
+          nb::arg("max_M"), nb::arg("seed") = 1)
+      .def_prop_ro("M", &LSMCEngine::M)
+      .def_prop_ro("active_lattice", &LSMCEngine::active_lattice)
+      .def_prop_rw("wl_ln_f", &LSMCEngine::get_wl_ln_f,
+                   &LSMCEngine::set_wl_ln_f)
+      .def("run_batch", &LSMCEngine::run_batch, nb::arg("sweeps"),
+           nb::arg("max_disp"))
+      // Expose the bias weights array to Python as a NumPy view
+      .def_prop_ro(
+          "bias_weights",
+          [](LSMCEngine &e) {
+            size_t shape = {e.bias_weights().size()};
+            return nb::ndarray<nb::numpy, double, nb::ndim<1>>(
+                e.bias_weights().data(), 1, &shape, nb::handle());
+          },
+          nb::rv_policy::reference_internal)
+      .def(
+          "set_bias_weights",
+          [](LSMCEngine &e,
+             nb::ndarray<nb::numpy, double, nb::ndim<1>, nb::c_contig>
+                 new_bias) {
+            std::span<double> span(new_bias.data(), new_bias.size());
+            e.set_bias_weights(span);
+          },
+          nb::arg("new_bias"))
+
+      // Expose the visit counts array to Python as a NumPy view
+      .def_prop_ro(
+          "visit_counts",
+          [](LSMCEngine &e) {
+            size_t shape = {e.visit_counts().size()};
+            return nb::ndarray<nb::numpy, int, nb::ndim<1>>(
+                e.visit_counts().data(), 1, &shape, nb::handle());
+          },
+          nb::rv_policy::reference_internal)
+      .def("reset_visit_counts", &LSMCEngine::reset_visit_counts);
+  ;
 }

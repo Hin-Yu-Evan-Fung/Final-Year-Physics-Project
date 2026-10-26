@@ -1,3 +1,13 @@
-from .core import ParticleType, SingleBoxEngine, State
+from .core import (
+    LSMCEngine,
+    ParticleType,
+    SingleBoxEngine,
+    State,
+)
 
-__all__ = ["ParticleType", "SingleBoxEngine", "State"]
+__all__ = [
+    "LSMCEngine",
+    "ParticleType",
+    "SingleBoxEngine",
+    "State",
+]

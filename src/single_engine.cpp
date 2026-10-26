@@ -7,7 +7,7 @@ Vec3 SingleBoxEngine::random_disp(double max_disp) {
   const double dx = rng_.random_double(-max_disp, max_disp);
   const double dy = rng_.random_double(-max_disp, max_disp);
   const double dz = rng_.random_double(-max_disp, max_disp);
-  return {dx, dy, dz};
+  return Vec3{dx, dy, dz};
 }
 
 size_t SingleBoxEngine::run_batch(size_t sweeps, double max_disp) {
