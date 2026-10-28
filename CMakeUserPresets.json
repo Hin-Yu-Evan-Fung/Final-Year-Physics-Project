@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "mac-llvm",
+      "displayName": "macOS Homebrew LLVM Profile",
+      "description": "Bypasses broken SDK updates using Homebrew LLVM and a stable SDK path",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++",
+        "CMAKE_C_COMPILER": "/opt/homebrew/opt/llvm/bin/clang"
+      }
+    }
+  ]
+}

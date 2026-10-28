@@ -7,8 +7,15 @@
 #### Setup
 
 ```bash
+# Make sure you have brew installed
+brew install cmake, llvm
+
 # 1. Compile C++ libraries
-cmake -B build         # Run once at the start (-DCMAKE_BUILD_TYPES=Release for optimised mode)
+# For mac users:
+cmake --preset mac-llvm
+# For linux users:
+cmake -B build         # (-DCMAKE_BUILD_TYPES=Release for optimised mode)
+# Then for all users:
 cmake --build build -j # Run every time there is an update to the C++ code
 
 # 2. Instantiate and activate a virtual environment
