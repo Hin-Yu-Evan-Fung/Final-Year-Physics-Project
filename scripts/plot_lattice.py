@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import generate_lattice from lattice.py
+from hpmc.utils.lattice import generate_lattice2
 
 
 def plot_lattice(
@@ -36,3 +36,10 @@ def plot_lattice(
     ax.set_zlabel("Z")
 
     plt.show()
+
+radius = 1
+box_length = 10
+x,y,z = generate_lattice2(box_length, radius, "hcp")
+
+plot_lattice(x,y,z,radius,box_length)
+

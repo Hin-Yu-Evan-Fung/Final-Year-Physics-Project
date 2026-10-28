@@ -89,3 +89,78 @@ def generate_lattice(radius = 1, box_length = 10, structure = "fcc"):
     x,y,z = np.array(positions)
 
     return x,y,z
+
+
+import numpy as np
+
+
+def generate_lattice2(box_length, radius, lattice_type):
+    """
+    Generate FCC or HCP lattice coordinates inside a cubic box.
+
+    Args:
+        box_length: Side length of the cubic box.
+        radius: Radius of each hard sphere.
+        lattice_type: "fcc" or "hcp".
+
+    Returns:
+        x, y, z: Separate NumPy arrays of particle coordinates.
+    """
+    if box_length <= 0 or radius <= 0:
+        raise ValueError("Box length and radius must be positive.")
+
+    positions = []
+    diameter = 2 * radius
+
+    if lattice_type.lower() == "fcc":
+        spacing = np.sqrt(2) * diameter
+
+        basis = [
+            (0, 0, 0),
+            (0.5, 0.5, 0),
+            (0.5, 0, 0.5),
+            (0, 0.5, 0.5),
+        ]
+
+        n = int(np.ceil(box_length / spacing)) + 1
+
+        for i in range(n):
+            for j in range(n):
+                for k in range(n):
+                    for dx, dy, dz in basis:
+                        x = (i + dx) * spacing
+                        y = (j + dy) * spacing
+                        z = (k + dz) * spacing
+
+                        if x < box_length and y < box_length and z < box_length:
+                            positions.append((x, y, z))
+
+    elif lattice_type.lower() == "hcp":
+        spacing_x = diameter
+        spacing_y = np.sqrt(3) / 2 * diameter
+        spacing_z = np.sqrt(2 / 3) * diameter
+
+        nx = int(np.ceil(box_length / spacing_x)) + 1
+        ny = int(np.ceil(box_length / spacing_y)) + 1
+        nz = int(np.ceil(box_length / spacing_z)) + 1
+
+        for k in range(nz):
+            for j in range(ny):
+                for i in range(-1, nx):
+                    x = (i + 0.5 * (j % 2)) * spacing_x
+                    y = j * spacing_y
+                    z = k * spacing_z
+
+                    if k % 2 == 1:
+                        x += spacing_x / 2
+                        y += spacing_y / 3
+
+                    if 0 <= x < box_length and 0 <= y < box_length and z < box_length:
+                        positions.append((x, y, z))
+
+    else:
+        raise ValueError("Lattice type must be 'fcc' or 'hcp'.")
+
+    positions = np.array(positions).reshape(-1, 3)
+
+    return positions[:, 0], positions[:, 1], positions[:, 2]
