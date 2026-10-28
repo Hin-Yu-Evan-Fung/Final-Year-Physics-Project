@@ -2,7 +2,7 @@ from typing import Any
 
 import numpy as np
 
-from .hpmc_ext import Lattice, ParticleType
+from .hpmc_ext import ParticleType
 from .hpmc_ext import LSMCEngine as _LSMCEngine
 from .hpmc_ext import SingleBoxEngine as _SingleBoxEngine
 from .hpmc_ext import State as _State
