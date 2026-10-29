@@ -87,7 +87,7 @@ def test_thermodynamic_ideal_gas_limit(
     Thermodynamic Test 1: Validates that a highly dilute system
     behaves like an ideal gas (Z safely approaches 1.0).
     """
-    state = hpmc.State(hpmc.ParticleType.Sphere, box_length, radius=radius)
+    state = hpmc.State(hpmc.ParticleType.Sphere, [box_length] * 3, radius=radius)
     lattice = generate_cubic_lattice(num_particles, box_length, radius)
     state.set_coords(*lattice)
 

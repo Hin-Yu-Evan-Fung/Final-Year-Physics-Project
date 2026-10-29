@@ -1,21 +1,22 @@
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
 
-from .hpmc_ext import ParticleType
 from .hpmc_ext import LSMCEngine as _LSMCEngine
+from .hpmc_ext import ParticleType
 from .hpmc_ext import SingleBoxEngine as _SingleBoxEngine
 from .hpmc_ext import State as _State
 
 
 class State:
     def __init__(
-        self, particle_type: ParticleType, box_length: float, **kwargs: Any
+        self, particle_type: ParticleType, box_dims: Sequence[float], **kwargs: Any
     ) -> None:
         """
         A state containing a periodic bounding box and particles of the same type and config
         """
-        self.state = _State(particle_type, box_length, **kwargs)
+        self.state = _State(particle_type, box_dims, **kwargs)
 
     def n_particles(self) -> int:
         """Returns the total number of particles currently in the system."""

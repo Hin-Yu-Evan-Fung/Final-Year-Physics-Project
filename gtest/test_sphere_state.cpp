@@ -7,17 +7,17 @@ using namespace hpmc;
 
 class StateTest : public ::testing::Test {
 protected:
-  double box_length_;
+  double L_;
   SphereConfig config_;
 
   void SetUp() override {
-    box_length_ = 10.0;
+    L_ = 10.0;
     config_.radius = 1.0;
   }
 };
 
 TEST_F(StateTest, SetCoords) {
-  State state(ParticleType::Sphere, box_length_, config_);
+  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
 
   std::vector<double> initial_x = {1.0, 5.0};
   std::vector<double> initial_y = {1.0, 5.0};
@@ -31,7 +31,7 @@ TEST_F(StateTest, SetCoords) {
 }
 
 TEST_F(StateTest, TranslationAccept) {
-  State state(ParticleType::Sphere, box_length_, config_);
+  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
   std::vector<double> initial_x = {1.0};
   std::vector<double> initial_y = {1.0};
   std::vector<double> initial_z = {1.0};
@@ -49,7 +49,7 @@ TEST_F(StateTest, TranslationAccept) {
 }
 
 TEST_F(StateTest, TranslationReject) {
-  State state(ParticleType::Sphere, box_length_, config_);
+  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
   std::vector<double> initial_x = {1.0, 3.5};
   std::vector<double> initial_y = {1.0, 4.0};
   std::vector<double> initial_z = {1.0, 0.0};
@@ -65,7 +65,7 @@ TEST_F(StateTest, TranslationReject) {
 }
 
 TEST_F(StateTest, TranslatePBC) {
-  State state(ParticleType::Sphere, box_length_, config_);
+  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
   std::vector<double> initial_x = {9.5};
   std::vector<double> initial_y = {1.0};
   std::vector<double> initial_z = {1.0};

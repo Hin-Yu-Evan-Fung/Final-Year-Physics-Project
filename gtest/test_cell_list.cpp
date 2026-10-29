@@ -7,10 +7,9 @@ using namespace hpmc;
 
 class MassiveCellListTest : public ::testing::Test {
 protected:
-  // 100.0 x 100.0 x 100.0 simulation box
-  Box box{100.0};
-  // min_cell_width = 2.0 -> 100 / 2 = 50 cells per axis.
-  // 50 * 50 * 50 = 125,000 cells total
+  // 100.0 x 110.0 x 120.0 simulation box
+  Box box{{100.0, 110.0, 120.0}};
+  // 50 * 55 * 60 = 165,000 cells total
   double scale_cell_width = 2.0;
   size_t num_particles = 100000;
 };
@@ -19,14 +18,14 @@ TEST_F(MassiveCellListTest, CellIndex) {
   CellList grid(box, scale_cell_width, num_particles);
 
   // Verify cell boundaries map correctly at large scales
-  // First cell (cx=0, cy=0, cz=0) -> 0
+  // (cx=0, cy=0, cz=0) -> 0
   EXPECT_EQ(grid.get_cell_index({0.5, 0.5, 0.5}), 0);
 
-  // Middle cell (cx=25, cy=25, cz=25) -> 25 + 25*50 + 25*2500 = 63775
-  EXPECT_EQ(grid.get_cell_index({50.5, 50.5, 50.5}), 63775);
+  // (cx=25, cy=25, cz=25) -> 25 + 27 * 50 + 30 * 2750 =
+  EXPECT_EQ(grid.get_cell_index({50.5, 55.5, 60.5}), 83875);
 
-  // Far corner cell (cx=49, cy=49, cz=49) -> 49 + 49*50 + 49*2500 = 124999
-  EXPECT_EQ(grid.get_cell_index({99.9, 99.9, 99.9}), 124999);
+  //  (cx=49, cy=54, cz=59) -> 49 + 54 * 50 + 59 * 2750 = 164999
+  EXPECT_EQ(grid.get_cell_index({99.9, 109.9, 119.9}), 164999);
 }
 
 TEST_F(MassiveCellListTest, Neighbours) {
@@ -43,7 +42,7 @@ TEST_F(MassiveCellListTest, Neighbours) {
     bool found_self = false;
     for (int n : local_neighbours) {
       ASSERT_GE(n, 0) << "cell_idx: " << test_cell;
-      ASSERT_LT(n, 125000) << "cell_idx: " << test_cell;
+      ASSERT_LT(n, 165000) << "cell_idx: " << test_cell;
       if (n == test_cell)
         found_self = true;
     }
@@ -67,7 +66,7 @@ TEST_F(MassiveCellListTest, CellIndexInsertion) {
 
     // Assert that the index is bounded within our valid array memory range
     ASSERT_GE(cell_idx, 0);
-    ASSERT_LT(cell_idx, 125000);
+    ASSERT_LT(cell_idx, 165000);
 
     grid.insert(i, cell_idx);
   }
