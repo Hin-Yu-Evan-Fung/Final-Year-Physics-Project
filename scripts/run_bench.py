@@ -27,9 +27,8 @@ def main():
 
     args = parser.parse_args()
 
-    state = hpmc.State(
-        hpmc.ParticleType.Sphere, box_length=args.box_length, radius=args.radius
-    )
+    box_dims = [args.box_length] * 3
+    state = hpmc.State(hpmc.ParticleType.Sphere, box_dims, radius=args.radius)
 
     print(f" -> Generating {args.particles:,} random particle coordinates...")
 

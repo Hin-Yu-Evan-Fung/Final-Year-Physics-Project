@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/array.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
@@ -21,7 +22,7 @@ NB_MODULE(hpmc_ext, m) {
   nb::class_<State>(m, "State")
       .def(
           "__init__",
-          [](State *self, ParticleType type, double box_length,
+          [](State *self, ParticleType type, std::array<double, 3> dims,
              nb::kwargs kwargs) {
             ParticleConfig cfg;
             if (type == ParticleType::Sphere) {
@@ -30,7 +31,9 @@ NB_MODULE(hpmc_ext, m) {
                 throw nb::value_error("Sphere radius must be > 0.0");
               cfg = SphereConfig{radius};
             }
-            new (self) State(type, box_length, cfg);
+
+            const Vec3 box_dims{dims[0], dims[1], dims[2]};
+            new (self) State(type, box_dims, cfg);
           },
           nb::arg("type"), nb::arg("box_length"), nb::arg("kwargs"))
       .def("n", &State::n)

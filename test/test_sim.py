@@ -16,7 +16,7 @@ def test_hard_core_overlap_matrix_method():
     DIAM = 2 * SIGMA
     MAX_DISP = 0.2 * SIGMA
 
-    state = hpmc.State(hpmc.ParticleType.Sphere, L, radius=SIGMA)
+    state = hpmc.State(hpmc.ParticleType.Sphere, [L] * 3, radius=SIGMA)
 
     init_coords = generate_cubic_lattice(N, L, SIGMA)
     state.set_coords(*init_coords)

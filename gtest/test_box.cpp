@@ -7,7 +7,7 @@ using namespace hpmc;
 
 TEST(BoxTest, DimensionsAndOrthorhombicWrapping) {
   Box cubic{10.0};
-  Box ortho{5.0, 10.0, 15.0};
+  Box ortho{{5.0, 10.0, 15.0}};
 
   Vec3 out_of_bounds{6.0, 11.0, 16.0};
   Vec3 wrapped = ortho.wrap(out_of_bounds);
