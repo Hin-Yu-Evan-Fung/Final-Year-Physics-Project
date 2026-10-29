@@ -164,3 +164,64 @@ def generate_lattice2(box_length, radius, lattice_type):
     positions = np.array(positions).reshape(-1, 3)
 
     return positions[:, 0], positions[:, 1], positions[:, 2]
+
+import numpy as np
+
+
+def generate_lattice3(box_length, radius, lattice_type):
+    """
+    Generate FCC or HCP using stacked close-packed layers.
+
+    Returns:
+        x, y, z: Separate coordinate arrays
+        box: Periodic box dimensions [Lx, Ly, Lz]
+    """
+    if box_length <= 0 or radius <= 0:
+        raise ValueError("Box length and radius must be positive.")
+
+    lattice_type = lattice_type.lower()
+
+    if lattice_type not in ("fcc", "hcp"):
+        raise ValueError("Lattice type must be 'fcc' or 'hcp'.")
+
+    diameter = 2 * radius
+
+    # Distance between rows and layers
+    dy = np.sqrt(3) / 2 * diameter
+    dz = np.sqrt(2 / 3) * diameter
+
+    # Number of positions in each direction
+    nx = max(2, round(box_length / diameter))
+    ny = 2 * max(1, round(box_length / (2 * dy)))
+    nz = 6 * max(1, round(box_length / (6 * dz)))
+
+    # Periodic box dimensions
+    box = np.array([nx * diameter, ny * dy, nz * dz])
+
+    # Generate the first triangular-packed layer (A)
+    i, j = np.meshgrid(np.arange(nx), np.arange(ny))
+
+    x_A = (i + 0.5 * (j % 2)) * diameter
+    y_A = j * dy
+
+    # Layer shifts
+    A = (0, 0)
+    B = (diameter / 2, dy / 3)
+    C = (diameter, 2 * dy / 3)
+
+    if lattice_type == "fcc":
+        shifts = [A, B, C]
+    else:
+        shifts = [A, B]
+
+    x, y, z = [], [], []
+
+    # Stack the layers
+    for k in range(nz):
+        shift_x, shift_y = shifts[k % len(shifts)]
+
+        x.append(((x_A + shift_x) % box[0]).ravel())
+        y.append(((y_A + shift_y) % box[1]).ravel())
+        z.append(np.full(x_A.size, k * dz))
+
+    return np.concatenate(x), np.concatenate(y), np.concatenate(z), box

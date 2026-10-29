@@ -1,45 +1,42 @@
 import numpy as np
-import matplotlib.pyplot as plt
+from hpmc.utils.lattice import generate_lattice3
+from ase import Atoms
+from ase.visualize import view
 
-from hpmc.utils.lattice import generate_lattice2
 
+def plot_lattice_ase(x, y, z, box, lattice_type):
+    """
+    Visualise an FCC or HCP lattice using ASE.
+    """
 
-def plot_lattice(
-    x: np.ndarray,
-    y: np.ndarray,
-    z: np.ndarray,
-    radius: float,
-    box_length: float,
-) -> None:
-    """Plot hard spheres inside a cubic simulation box."""
+    positions = np.column_stack((x, y, z))
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
+    atoms = Atoms(
+        symbols=["Ar"] * len(x),
+        positions=positions,
+        cell=box,
+        pbc=True
+    )
 
-    u = np.linspace(0, 2 * np.pi, 12)
-    v = np.linspace(0, np.pi, 10)
+    # Identify the stacking layer of each particle
+    _, layer_indices = np.unique(
+        np.round(z, 10),
+        return_inverse=True
+    )
 
-    for xi, yi, zi in zip(x, y, z):
-        xs = xi + radius * np.outer(np.cos(u), np.sin(v))
-        ys = yi + radius * np.outer(np.sin(u), np.sin(v))
-        zs = zi + radius * np.outer(np.ones_like(u), np.cos(v))
+    if lattice_type.lower() == "fcc":
+        tags = layer_indices % 3
+    elif lattice_type.lower() == "hcp":
+        tags = layer_indices % 2
+    else:
+        raise ValueError("Invalid lattice type")
 
-        ax.plot_surface(xs, ys, zs, color="steelblue")
+    atoms.set_tags(tags)
 
-    ax.set_xlim(0, box_length)
-    ax.set_ylim(0, box_length)
-    ax.set_zlim(0, box_length)
-    ax.set_box_aspect((1, 1, 1))
+    view(atoms)
 
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
+    return atoms
 
-    plt.show()
+x, y, z, box = generate_lattice3(10, 0.5, "fcc")
 
-radius = 1
-box_length = 10
-x,y,z = generate_lattice2(box_length, radius, "hcp")
-
-plot_lattice(x,y,z,radius,box_length)
-
+atoms = plot_lattice_ase(x, y, z, box, "fcc")
