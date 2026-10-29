@@ -61,7 +61,7 @@ TEST(OverlapFuzzTest, CellListMatchesNaiveOracle) {
   constexpr size_t L = 8.0;
 
   SphereConfig config{0.5};
-  State state(ParticleType::Sphere, L, config);
+  State state(ParticleType::Sphere, {L, L, L}, config);
 
   std::vector<double> x, y, z;
   random_grid(rng, x, y, z, N, L);
@@ -100,7 +100,7 @@ TEST(OverlapFuzzTest, OverlapTracking) {
   constexpr size_t L = 8.0;
 
   SphereConfig config{0.5};
-  State state(ParticleType::Sphere, L, config);
+  State state(ParticleType::Sphere, {L, L, L}, config);
 
   std::vector<double> x1, y1, z1;
   random_grid(rng, x1, y1, z1, N, L);

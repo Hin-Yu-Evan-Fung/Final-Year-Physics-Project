@@ -12,8 +12,8 @@ class Box {
 
 public:
   constexpr Box() : dim_{}, inv_dim_{} {}
-  constexpr Box(double lx, double ly, double lz)
-      : dim_(lx, ly, lz), inv_dim_(1.0 / lx, 1.0 / ly, 1.0 / lz) {}
+  constexpr Box(Vec3 dims)
+      : dim_(dims), inv_dim_(1.0 / dims.x, 1.0 / dims.y, 1.0 / dims.z) {}
   constexpr Box(double l)
       : dim_(l, l, l), inv_dim_(1.0 / l, 1.0 / l, 1.0 / l) {}
 

@@ -38,8 +38,8 @@ class State {
   template <typename Config> size_t global_overlaps(const Config &config) const;
 
 public:
-  State(ParticleType type, double box_length, ParticleConfig config)
-      : type_(type), config_(config), box_(box_length), cell_list_{} {}
+  State(ParticleType type, Vec3 box_dims, ParticleConfig config)
+      : type_(type), config_(config), box_(box_dims), cell_list_{} {}
 
   constexpr size_t n() const { return n_; }
   const Box &box() const { return box_; }

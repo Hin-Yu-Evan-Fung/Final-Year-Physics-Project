@@ -34,7 +34,7 @@ def make_state(seed):
     y = np.ravel(y)[:N]
     z = np.ravel(z)[:N]
 
-    s = hpmc.State(hpmc.ParticleType.Sphere, L, radius=SIGMA)
+    s = hpmc.State(hpmc.ParticleType.Sphere, [L] * 3, radius=SIGMA)
     s.set_coords(*[(c + rng.normal(0, 0.05 * SIGMA, N)) % L for c in (x, y, z)])
     assert s.count_overlaps() == 0
     return s
