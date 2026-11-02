@@ -52,3 +52,13 @@ build/
 # data files
 *.csv
 *.png
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Pytest cache
+.pytest_cache/
