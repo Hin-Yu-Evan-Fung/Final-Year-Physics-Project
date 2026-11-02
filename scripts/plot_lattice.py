@@ -1,5 +1,5 @@
 import numpy as np
-from hpmc.utils.lattice import generate_lattice3
+from hpmc.utils.lattice import generate_lattice
 from ase import Atoms
 from ase.visualize import view
 
@@ -33,10 +33,28 @@ def plot_lattice_ase(x, y, z, box, lattice_type):
 
     atoms.set_tags(tags)
 
-    view(atoms)
+    view(atoms, viewer="ase", block=True)
 
     return atoms
 
-x, y, z, box = generate_lattice3(10, 0.5, "fcc")
+packing_fraction = 0.60
+radius = 0.5
 
-atoms = plot_lattice_ase(x, y, z, box, "fcc")
+x_fcc, y_fcc, z_fcc, box_fcc = generate_lattice(
+    packing_fraction, radius, "fcc"
+)
+
+x_hcp, y_hcp, z_hcp, box_hcp = generate_lattice(
+    packing_fraction, radius, "hcp"
+)
+
+fcc_atoms = plot_lattice_ase(
+    x_fcc, y_fcc, z_fcc, box_fcc, "fcc"
+)
+
+hcp_atoms = plot_lattice_ase(
+    x_hcp, y_hcp, z_hcp, box_hcp, "hcp"
+)
+
+# Open both structures in the interactive ASE viewer
+view([fcc_atoms, hcp_atoms], viewer="ase", block=True)

@@ -39,3 +39,5 @@ def test_hard_core_overlap_matrix_method():
         f"between particle {rows[np.argmin(unique_distances)]} "
         f"and particle {cols[np.argmin(unique_distances)]}."
     )
+
+
