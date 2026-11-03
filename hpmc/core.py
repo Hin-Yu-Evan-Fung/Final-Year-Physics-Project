@@ -11,7 +11,10 @@ from .hpmc_ext import State as _State
 
 class State:
     def __init__(
-        self, particle_type: ParticleType, box_dims: Sequence[float], **kwargs: Any
+        self,
+        particle_type: ParticleType,
+        box_dims: Sequence[float],
+        **kwargs: Any,
     ) -> None:
         """
         A state containing a periodic bounding box and particles of the same type and config

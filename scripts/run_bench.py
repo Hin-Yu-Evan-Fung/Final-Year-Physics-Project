@@ -4,40 +4,70 @@ import os
 import time
 
 import hpmc
-from hpmc.utils.lattice import generate_cubic_lattice
+from hpmc.utils.lattice import generate_cubic_lattice, generate_lattice
+
+RADIUS = 0.5
 
 
 def main():
     parser = argparse.ArgumentParser(description="hpmc Performance Benchmark")
+
+    # fmt: off
+
+    # Core architectural scaling parameters
     parser.add_argument(
-        "-n", "--particles", type=int, default=256, help="Number of particles"
+        "-p", "--phi", type=float, default=0.20, help="Target packing fraction (density)"
     )
+    parser.add_argument(
+        "-t", "--lattice-type", type=str, default="fcc", choices=["sc", "fcc", "hcp"],
+        help="Initial crystal lattice structure (sc, fcc, hcp)"
+    )
+    parser.add_argument(
+        "--nx", type=int, default=6, help="Number of unit cells along X axis"
+    )
+    parser.add_argument(
+        "--ny", type=int, default=6, help="Number of unit cells along Y axis"
+    )
+    parser.add_argument(
+        "--nz", type=int, default=6, help="Number of unit cells along Z axis"
+    )
+
+    # Simulation engine constants
     parser.add_argument(
         "-s", "--sweeps", type=int, default=10_000, help="Number of MC sweeps"
-    )
-    parser.add_argument(
-        "-l", "--box-length", type=float, default=20.0, help="Box side length (L)"
-    )
-    parser.add_argument(
-        "-r", "--radius", type=float, default=0.5, help="Hard sphere radius (sigma)"
     )
     parser.add_argument(
         "--save-csv", type=str, default="", help="Path to save results for plotting"
     )
 
+    # fmt: on
+
     args = parser.parse_args()
 
-    box_dims = [args.box_length] * 3
-    state = hpmc.State(hpmc.ParticleType.Sphere, box_dims, radius=args.radius)
+    print(f" -> Mapping lattice structure: type={args.lattice_type}, phi={args.phi}...")
 
-    print(f" -> Generating {args.particles:,} random particle coordinates...")
+    # Assemble dynamic lattice configurations matching your test suite API
+    gen_kwargs = {
+        "packing_fraction": args.phi,
+        "radius": RADIUS,
+        "nx": args.nx,
+        "ny": args.ny,
+        "nz": args.nz,
+    }
 
-    # Evenly space them or scatter them randomly across the box volume
-    init_coords = generate_cubic_lattice(args.particles, args.box_length, args.radius)
-    state.set_coords(*init_coords)
+    if args.lattice_type == "sc":
+        x, y, z, box = generate_cubic_lattice(**gen_kwargs)
+    else:
+        x, y, z, box = generate_lattice(lattice_type=args.lattice_type, **gen_kwargs)
+
+    num_particles = len(x)
+    print(f" -> Initialised {num_particles:,} particles in box dimensions: {box}")
+
+    state = hpmc.State(hpmc.ParticleType.Sphere, list(box), radius=RADIUS)
+    state.set_coords(x, y, z)
 
     assert state.count_overlaps() == 0, "There should be no particle overlaps initially"
-    assert state.n_particles() == args.particles
+    assert state.n_particles() == num_particles
 
     print(" -> Executing C++ batch update sweep...")
 
@@ -48,9 +78,8 @@ def main():
     end_time = time.perf_counter()
 
     elapsed = end_time - start_time
-    moves = args.sweeps * args.particles
+    moves = args.sweeps * num_particles
     throughput = moves / elapsed
-    density = args.particles / (args.box_length**3)
 
     print(f" - Elapsed Time: {elapsed:.4f} seconds")
     print(f" - Sweep Velocity: {throughput:,.0f} moves/sec")
@@ -58,7 +87,7 @@ def main():
 
     # Verify sanity structural bounds
     assert isinstance(accepted, int)
-    assert 0 <= accepted <= args.sweeps * args.particles
+    assert 0 <= accepted <= args.sweeps * num_particles
 
     if args.save_csv:
         file_exists = os.path.isfile(args.save_csv)
@@ -67,9 +96,12 @@ def main():
             if not file_exists:
                 writer.writerow(
                     [
+                        "lattice_type",
                         "particles",
-                        "box_length",
-                        "density",
+                        "packing_fraction",
+                        "nx",
+                        "ny",
+                        "nz",
                         "sweeps",
                         "elapsed",
                         "throughput",
@@ -77,9 +109,12 @@ def main():
                 )
             writer.writerow(
                 [
-                    args.particles,
-                    args.box_length,
-                    density,
+                    args.lattice_type,
+                    num_particles,
+                    args.phi,
+                    args.nx,
+                    args.ny,
+                    args.nz,
                     args.sweeps,
                     elapsed,
                     throughput,

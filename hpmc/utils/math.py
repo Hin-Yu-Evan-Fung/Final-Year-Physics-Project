@@ -1,8 +1,10 @@
+from collections.abc import Sequence
+
 import numpy as np
 
 
 def generate_dist_matrix(
-    x: np.ndarray, y: np.ndarray, z: np.ndarray, box_length: float
+    x: np.ndarray, y: np.ndarray, z: np.ndarray, box_dims: Sequence[float]
 ) -> np.ndarray:
     """
     Computes a full N x N pairwise distance matrix adhering to
@@ -10,7 +12,7 @@ def generate_dist_matrix(
 
     Args:
         positions: Array of shape (N, 3) containing particle coordinates.
-        box_length: The linear size of the periodic simulation box.
+        box_dims: The dimension of the periodic simulation box.
 
     Returns:
         A symmetric (N, N) matrix where entry [i, j] is the periodic distance
@@ -27,10 +29,10 @@ def generate_dist_matrix(
     dy = y_col - y_col.T
     dz = z_col - z_col.T
 
-    # Minimum Image Convention: Wrap differences to [-box_length/2, box_length/2]
-    dx -= box_length * np.round(dx / box_length)
-    dy -= box_length * np.round(dy / box_length)
-    dz -= box_length * np.round(dz / box_length)
+    # Minimum Image Convention
+    dx -= box_dims[0] * np.round(dx / box_dims[0])
+    dy -= box_dims[1] * np.round(dy / box_dims[1])
+    dz -= box_dims[2] * np.round(dz / box_dims[2])
 
     # Compute Euclidean norm along the coordinate axis
     return np.sqrt(dx**2 + dy**2 + dz**2)
