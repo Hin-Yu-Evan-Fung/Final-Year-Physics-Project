@@ -1,17 +1,17 @@
 import numpy as np
 
 
-def generate_cubic_lattice(
-    num_particles: int, box_length: float, radius: float
-) -> np.ndarray:
+def generate_cubic_lattice(packing_fraction: float, radius: float, nx=6, ny=6, nz=6):
     """
     Generates coordinates for a simple cubic lattice
-    with the number of particles and box length provided.
+    with the radius, number of particles, and packing_fraction defined
 
     Args:
-        num_particles: Total count of spheres to place.
-        box_length: The linear side length of the simulation box.
-        radius: The radius of a single sphere (Diameter = 2 * radius).
+        packing_fraction: Desired packing fraction.
+        radius: Radius of the hard spheres.
+        nx: Number of particles per row.
+        ny: Number of rows per layer (must be even).
+        nz: Number of layers (must be a multiple of 6).
 
     Returns:
        Coordinates for a simple cubic lattice
@@ -19,44 +19,39 @@ def generate_cubic_lattice(
     Raises:
         ValueError - Too many particles to generate a valid lattice
     """
-    points_per_axis = int(np.ceil(np.pow(num_particles, (1 / 3))))
-    diameter = radius * 2
 
-    # Calculate the linear footprint of the required grid
-    required_length = points_per_axis * diameter
+    max_packing = np.pi / 6
 
-    if required_length > box_length:
-        raise ValueError(
-            f"Invalid Lattice Configuration! A {points_per_axis}x{points_per_axis}x{points_per_axis} "
-            f"grid requires a linear spacing of at least {required_length:.4f} units, "
-            f"but your box_length is only {box_length:.4f}."
-        )
+    if not 0 < packing_fraction <= max_packing:
+        raise ValueError("Invalid packing fraction.")
 
-    grid_points = np.linspace(
-        radius, box_length - radius, points_per_axis, dtype=np.float64
-    )
+    if radius <= 0:
+        raise ValueError("Radius must be positive.")
 
-    x, y, z = np.meshgrid(grid_points, grid_points, grid_points, indexing="ij")
+    # C++ Engine cell list requires nx, ny, nz >= 3
+    if nx < 3 or ny < 3 or nz < 3:
+        raise ValueError("Lattice dimensions are too small.")
 
-    return (
-        np.ravel(x)[:num_particles],
-        np.ravel(y)[:num_particles],
-        np.ravel(z)[:num_particles],
-    )
+    # Calculate lattice spacing at the desired packing fraction
+    diameter = 2 * radius
+
+    spacing = diameter * (max_packing / packing_fraction) ** (1 / 3)
+
+    Lx = nx * spacing
+    Ly = ny * spacing
+    Lz = nz * spacing
+    box = np.array([Lx, Ly, Lz])
+
+    i, j, k = np.meshgrid(np.arange(nx), np.arange(ny), np.arange(nz))
+
+    x = i * spacing
+    y = j * spacing
+    z = k * spacing
+
+    return x.flatten(), y.flatten(), z.flatten(), box
 
 
-
-import numpy as np
-
-
-def generate_lattice(
-    packing_fraction,
-    radius,
-    lattice_type,
-    nx=6,
-    ny=6,
-    nz=6
-):
+def generate_lattice(packing_fraction, radius, lattice_type, nx=6, ny=6, nz=6):
     """
     Generate FCC or HCP lattice with periodic boundaries.
 
@@ -81,7 +76,8 @@ def generate_lattice(
     if radius <= 0:
         raise ValueError("Radius must be positive.")
 
-    if nx < 2 or ny < 2 or nz < 6:
+    # C++ Engine cell list requires nx, ny, nz >= 3
+    if nx < 3 or ny < 3 or nz < 6:
         raise ValueError("Lattice dimensions are too small.")
 
     if ny % 2 != 0 or nz % 6 != 0:
@@ -90,7 +86,7 @@ def generate_lattice(
     # Calculate lattice spacing at the desired packing fraction
     diameter = 2 * radius
 
-    spacing = diameter * (max_packing / packing_fraction)**(1 / 3)
+    spacing = diameter * (max_packing / packing_fraction) ** (1 / 3)
 
     dx = spacing
     dy = np.sqrt(3) / 2 * spacing
@@ -132,5 +128,3 @@ def generate_lattice(
         z.append(np.full(x_A.size, k * dz))
 
     return np.concatenate(x), np.concatenate(y), np.concatenate(z), box
-
-
