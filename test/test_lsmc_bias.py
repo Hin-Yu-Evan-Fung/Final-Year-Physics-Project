@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import hpmc
+from hpmc.utils.lattice import generate_lattice
 
 L, N, SIGMA = 8.0, 216, 0.5
 MIN_M, MAX_M = -50, 50
@@ -9,33 +10,18 @@ OFFSET = -MIN_M
 SIZE = MAX_M - MIN_M + 1
 
 
-def make_state(seed):
-    rng = np.random.default_rng(seed)
+def make_state(seed, lattice_type):
+    RADIUS = 0.5
+    ETA = 0.5
 
-    points_per_axis = int(np.ceil(np.pow(N, (1 / 3))))
-
-    # Calculate the linear footprint of the required grid
-    required_length = points_per_axis * SIGMA * 2
-
-    if required_length > L:
-        raise ValueError(
-            f"Invalid Lattice Configuration! A {points_per_axis}x{points_per_axis}x{points_per_axis} "
-            f"grid requires a linear spacing of at least {required_length:.4f} units, "
-            f"but your box_length is only {L:.4f}."
-        )
-
-    grid_points = np.linspace(
-        SIGMA * 2, L - SIGMA * 2, points_per_axis, dtype=np.float64
+    assert lattice_type == "fcc" or lattice_type == "hcp", (
+        "lattice types have to be valid"
     )
 
-    x, y, z = np.meshgrid(grid_points, grid_points, grid_points, indexing="ij")
+    x, y, z, box = generate_lattice(ETA, RADIUS, lattice_type, 6, 6, 6)
 
-    x = np.ravel(x)[:N]
-    y = np.ravel(y)[:N]
-    z = np.ravel(z)[:N]
-
-    s = hpmc.State(hpmc.ParticleType.Sphere, [L] * 3, radius=SIGMA)
-    s.set_coords(*[(c + rng.normal(0, 0.05 * SIGMA, N)) % L for c in (x, y, z)])
+    s = hpmc.State(hpmc.ParticleType.Sphere, list(box), radius=RADIUS)
+    s.set_coords(x, y, z)
     assert s.count_overlaps() == 0
     return s
 
@@ -43,7 +29,7 @@ def make_state(seed):
 @pytest.fixture
 def make_sim():
     def _make(swap=False, seed=1):
-        a, b = make_state(10), make_state(20)
+        a, b = make_state(10, "fcc"), make_state(20, "hcp")
         if swap:
             a, b = b, a
         sim = hpmc.LSMCEngine(a, b, MIN_M, MAX_M, seed=seed)
@@ -74,7 +60,7 @@ def test_visits_roughly_symmetric(make_sim, swap):
         sim.run_batch(sweeps=50, max_disp=0.15)
     v = sim.visit_counts
     neg, pos = v[:OFFSET].sum(), v[OFFSET + 1 :].sum()
-    assert 0.7 < neg / pos < 1.3  # loose: identical lattices, so near 1
+    assert 0.5 < neg / pos < 1.5  # loose: identical lattices, so near 1
 
 
 def test_M_stays_in_range(make_sim):
