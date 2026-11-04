@@ -43,12 +43,14 @@
 # python debug files
 *.pyi
 
+# folders
 .venv/
-
 build/
 *__pycache__*
 *.egg-info/
+*.ipynb_checkpoints/
 
 # data files
 *.csv
 *.png
+*.npy
