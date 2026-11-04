@@ -21,11 +21,11 @@ void CellList::precompute_neighbours() {
   // clang-format on
 
   neighbours_.resize(total_cells_);
-  for (int cell_idx = 0; cell_idx < total_cells_; ++cell_idx) {
+  for (size_t cell_idx = 0; cell_idx < total_cells_; ++cell_idx) {
     int cx, cy, cz;
-    index_to_3d(cell_idx, cx, cy, cz);
+    index_to_3d((int)cell_idx, cx, cy, cz);
 
-    for (int i = 0; i < 27; ++i) {
+    for (size_t i = 0; i < 27; ++i) {
       int nx = grid_pbc_wrap(cx + OFFSETS[i][0], x_cells_);
       int ny = grid_pbc_wrap(cy + OFFSETS[i][1], y_cells_);
       int nz = grid_pbc_wrap(cz + OFFSETS[i][2], z_cells_);
@@ -36,13 +36,13 @@ void CellList::precompute_neighbours() {
 }
 
 void CellList::resize(const Box &box, double min_cell_width,
-                      int num_particles) {
+                      size_t num_particles) {
   box_ = &box;
   Vec3 box_l = box_->get_dims();
 
-  x_cells_ = std::floor(box_l.x / min_cell_width);
-  y_cells_ = std::floor(box_l.y / min_cell_width);
-  z_cells_ = std::floor(box_l.z / min_cell_width);
+  x_cells_ = (int)std::floor(box_l.x / min_cell_width);
+  y_cells_ = (int)std::floor(box_l.y / min_cell_width);
+  z_cells_ = (int)std::floor(box_l.z / min_cell_width);
 
   assert(x_cells_ >= 3);
   assert(y_cells_ >= 3);
@@ -52,7 +52,7 @@ void CellList::resize(const Box &box, double min_cell_width,
   cell_dims_.y = box_l.y / y_cells_;
   cell_dims_.z = box_l.z / z_cells_;
 
-  total_cells_ = x_cells_ * y_cells_ * z_cells_;
+  total_cells_ = (size_t)(x_cells_ * y_cells_ * z_cells_);
 
   head_.assign(total_cells_, -1);
   next_.assign(num_particles, -1);
@@ -76,17 +76,17 @@ int CellList::get_cell_index(const Vec3 &pos) const {
 }
 
 // Append to the start of linked list
-void CellList::insert(int particle_idx, int cell_idx) {
+void CellList::insert(size_t particle_idx, size_t cell_idx) {
   next_[particle_idx] = head_[cell_idx];
-  head_[cell_idx] = particle_idx;
-  cell_map_[particle_idx] = cell_idx;
+  head_[cell_idx] = (int)particle_idx;
+  cell_map_[particle_idx] = (int)cell_idx;
 }
 
 // Remove particle
-void CellList::remove(int particle_idx, int cell_idx) {
+void CellList::remove(size_t particle_idx, size_t cell_idx) {
   int *link = &head_[cell_idx];
-  while (*link != particle_idx) {
-    link = &next_[*link];
+  while (*link != (int)particle_idx) {
+    link = &next_[(size_t)*link];
   }
   *link = next_[particle_idx];
   next_[particle_idx] = -1;
