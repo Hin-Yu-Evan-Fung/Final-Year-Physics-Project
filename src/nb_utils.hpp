@@ -8,8 +8,7 @@ namespace nb = nanobind;
 namespace hpmc {
 
 template <typename T>
-inline T get_param(const nb::kwargs &kwargs, const std::string &key,
-                   bool required) {
+inline T get_param(const nb::kwargs &kwargs, const std::string &key) {
   if (!kwargs.contains(key.c_str())) {
     // Throws a clean ValueError back to Python instantly
     throw nb::value_error(

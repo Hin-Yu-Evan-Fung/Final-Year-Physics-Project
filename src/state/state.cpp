@@ -26,12 +26,12 @@ void State::set_coords(std::span<const double> x, std::span<const double> y,
       box_,
       std::visit([&](auto &&active_cfg) { return active_cfg.min_cell_width(); },
                  config_),
-      n_);
+      (int)n_);
 
   // Insert particles into the cell list
-  for (int i = 0; i < n_; ++i) {
+  for (size_t i = 0; i < n_; ++i) {
     int cell_idx = cell_list_.get_cell_index(pos_at(i));
-    cell_list_.insert(i, cell_idx);
+    cell_list_.insert((int)i, cell_idx);
   }
 }
 
@@ -82,8 +82,8 @@ void State::accept_translation(const MoveProposal &prop) {
   z_[prop.idx] = prop.new_pos.z;
 
   if (prop.new_cell != prop.old_cell) {
-    cell_list_.remove(prop.idx, prop.old_cell);
-    cell_list_.insert(prop.idx, prop.new_cell);
+    cell_list_.remove((int)prop.idx, prop.old_cell);
+    cell_list_.insert((int)prop.idx, prop.new_cell);
   }
 }
 

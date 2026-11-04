@@ -54,6 +54,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Pure GCC optimizations
   target_compile_options(hpmc_ext PRIVATE
+    -Wall -Wextra -Wsign-compare -Wconversion
     $<$<CONFIG:Release>:-g -O3 -flto -march=native -ffast-math>
     $<$<CONFIG:Debug>:-g -Og -fno-inline>
   )

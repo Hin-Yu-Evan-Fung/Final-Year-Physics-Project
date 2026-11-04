@@ -26,7 +26,7 @@ NB_MODULE(hpmc_ext, m) {
              nb::kwargs kwargs) {
             ParticleConfig cfg;
             if (type == ParticleType::Sphere) {
-              double radius = get_param<double>(kwargs, "radius", true);
+              double radius = get_param<double>(kwargs, "radius");
               if (radius <= 0.0)
                 throw nb::value_error("Sphere radius must be > 0.0");
               cfg = SphereConfig{radius};
@@ -125,7 +125,7 @@ NB_MODULE(hpmc_ext, m) {
           "visit_counts",
           [](LSMCEngine &e) {
             size_t shape = {e.visit_counts().size()};
-            return nb::ndarray<nb::numpy, int, nb::ndim<1>>(
+            return nb::ndarray<nb::numpy, uint64_t, nb::ndim<1>>(
                 e.visit_counts().data(), 1, &shape, nb::handle());
           },
           nb::rv_policy::reference_internal)

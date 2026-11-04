@@ -49,7 +49,7 @@ public:
 
   inline double random_double(double min = 0.0, double max = 1.0) {
     constexpr double MULTIPLIER = 1.0 / (1ULL << 53);
-    const double d = (random_u64() >> 11) * MULTIPLIER;
+    const double d = static_cast<double>(random_u64() >> 11) * MULTIPLIER;
     return min + (max - min) * d;
   }
 };
