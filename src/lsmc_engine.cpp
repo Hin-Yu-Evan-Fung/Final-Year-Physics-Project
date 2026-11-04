@@ -23,34 +23,30 @@ size_t LSMCEngine::run_batch(size_t sweeps, double max_disp) {
     MoveProposal active_prop = active_->propse_translation(p_idx, disp);
     MoveProposal passive_prop = passive_->propse_translation(p_idx, disp);
 
-    // Reject if overlapping on active lattice
-    if (active_->check_overlap(active_prop)) {
-      update_bias(M_);
-      update_visit_count(M_);
-      continue;
-    }
+    // Accept if not overlapping on active lattice
+    if (!active_->check_overlap(active_prop)) {
+      size_t overlaps_before = passive_->count_local_overlaps(
+          p_idx, passive_prop.old_pos, (size_t)passive_prop.old_cell);
+      size_t overlaps_after = passive_->count_local_overlaps(
+          p_idx, passive_prop.new_pos, (size_t)passive_prop.new_cell);
 
-    size_t overlaps_before = passive_->count_local_overlaps(
-        p_idx, passive_prop.old_pos, (size_t)passive_prop.old_cell);
-    size_t overlaps_after = passive_->count_local_overlaps(
-        p_idx, passive_prop.new_pos, (size_t)passive_prop.new_cell);
+      int delta_passive = (int)overlaps_after - (int)overlaps_before;
+      int delta_M =
+          (active_lattice_ == Lattice::A) ? -delta_passive : delta_passive;
+      int M_before = M_;
+      int M_after = M_ + delta_M;
 
-    int delta_passive = (int)overlaps_after - (int)overlaps_before;
-    int delta_M =
-        (active_lattice_ == Lattice::A) ? -delta_passive : delta_passive;
-    int M_before = M_;
-    int M_after = M_ + delta_M;
+      double u_old = lookup_bias(M_before);
+      double u_new = lookup_bias(M_after);
+      double delta_U = u_new - u_old;
 
-    double u_old = lookup_bias(M_before);
-    double u_new = lookup_bias(M_after);
-    double delta_U = u_new - u_old;
-
-    // Accept move if random double < min(1, exp(-delta_U))
-    if (delta_U <= 0.0 || rng_.random_double() < std::exp(-delta_U)) {
-      active_->accept_translation(active_prop);
-      passive_->accept_translation(passive_prop);
-      M_ = M_after;
-      accepted_moves++;
+      // Accept move if random double < min(1, exp(-delta_U))
+      if (delta_U <= 0.0 || rng_.random_double() < std::exp(-delta_U)) {
+        active_->accept_translation(active_prop);
+        passive_->accept_translation(passive_prop);
+        M_ = M_after;
+        accepted_moves++;
+      }
     }
 
     // Update bias at M
