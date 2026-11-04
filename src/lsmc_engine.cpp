@@ -30,12 +30,12 @@ size_t LSMCEngine::run_batch(size_t sweeps, double max_disp) {
       continue;
     }
 
-    int overlaps_before = passive_->count_local_overlaps(
-        p_idx, passive_prop.old_pos, passive_prop.old_cell);
-    int overlaps_after = passive_->count_local_overlaps(
-        p_idx, passive_prop.new_pos, passive_prop.new_cell);
+    size_t overlaps_before = passive_->count_local_overlaps(
+        p_idx, passive_prop.old_pos, (size_t)passive_prop.old_cell);
+    size_t overlaps_after = passive_->count_local_overlaps(
+        p_idx, passive_prop.new_pos, (size_t)passive_prop.new_cell);
 
-    int delta_passive = overlaps_after - overlaps_before;
+    int delta_passive = (int)overlaps_after - (int)overlaps_before;
     int delta_M =
         (active_lattice_ == Lattice::A) ? -delta_passive : delta_passive;
     int M_before = M_;

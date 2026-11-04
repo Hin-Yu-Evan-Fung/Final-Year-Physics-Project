@@ -68,17 +68,17 @@ public:
 
 template <typename Config>
 bool State::overlap(const Config &config, const MoveProposal &prop) const {
-  const auto &local_cells = cell_list_.get_neighbours(prop.new_cell);
+  const auto &local_cells = cell_list_.get_neighbours((size_t)prop.new_cell);
 
-  for (int cell_idx : local_cells) {
+  for (size_t cell_idx : local_cells) {
     int neighbour_id = cell_list_.get_head(cell_idx);
 
     while (neighbour_id != -1) {
-      if (neighbour_id != prop.idx &&
+      if (neighbour_id != (int)prop.idx &&
           config.overlap(box_, prop.new_pos, pos_at(neighbour_id)))
         return true;
 
-      neighbour_id = cell_list_.get_next(neighbour_id);
+      neighbour_id = cell_list_.get_next((size_t)neighbour_id);
     }
   }
 
@@ -91,14 +91,14 @@ size_t State::local_overlaps(const Config &config, size_t idx, const Vec3 &pos,
   const auto &local_cells = cell_list_.get_neighbours(cell);
   size_t overlaps = 0;
 
-  for (int cell_idx : local_cells) {
+  for (size_t cell_idx : local_cells) {
     int neighbour_id = cell_list_.get_head(cell_idx);
 
     while (neighbour_id != -1) {
-      overlaps += neighbour_id != idx &&
+      overlaps += neighbour_id != (int)idx &&
                   config.overlap(box_, pos, pos_at(neighbour_id));
 
-      neighbour_id = cell_list_.get_next(neighbour_id);
+      neighbour_id = cell_list_.get_next((size_t)neighbour_id);
     }
   }
 
@@ -109,8 +109,8 @@ template <typename Config>
 size_t State::global_overlaps(const Config &config) const {
   size_t overlaps = 0;
 
-  for (int cell_idx = 0; cell_idx < cell_list_.total_cells(); ++cell_idx) {
-    int p_id = cell_list_.get_head(cell_idx);
+  for (size_t cell_idx = 0; cell_idx < cell_list_.total_cells(); ++cell_idx) {
+    int p_id = cell_list_.get_head((size_t)cell_idx);
     if (p_id == -1)
       continue;
 
@@ -118,7 +118,7 @@ size_t State::global_overlaps(const Config &config) const {
 
     while (p_id != -1) {
       // Find all neighbouring particles, which is everyone.
-      for (int n_cell : local_cells) {
+      for (size_t n_cell : local_cells) {
         int neighbour_id = cell_list_.get_head(n_cell);
 
         while (neighbour_id != -1) {
@@ -127,11 +127,11 @@ size_t State::global_overlaps(const Config &config) const {
             overlaps +=
                 config.overlap(box_, pos_at(p_id), pos_at(neighbour_id));
           }
-          neighbour_id = cell_list_.get_next(neighbour_id);
+          neighbour_id = cell_list_.get_next((size_t)neighbour_id);
         }
       }
 
-      p_id = cell_list_.get_next(p_id);
+      p_id = cell_list_.get_next((size_t)p_id);
     }
   }
   return overlaps;
