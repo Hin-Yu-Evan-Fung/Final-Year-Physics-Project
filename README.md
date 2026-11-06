@@ -45,3 +45,17 @@ pytest -s          # For Python tests
 ```bash
 python scripts/run_bench.py -n 216 -l 10.0 -s 10000
 ```
+
+### Storing Jupyter Notebooks
+
+#### Storing at markdown files
+
+```bash
+jupytext --to markdown [filepath]
+```
+
+#### Converting back to local .ipynb files
+
+```bash
+jupytext --to notebook [filepath]
+```
