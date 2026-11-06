@@ -54,3 +54,4 @@ build/
 *.csv
 *.png
 *.npy
+*.npz
