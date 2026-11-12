@@ -6,6 +6,7 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include "transition_matrix.hpp"
 
 namespace hpmc {
 
@@ -31,6 +32,8 @@ class LSMCEngine {
   int min_M_;
   int max_M_;
   int M_ = 0;
+
+  TransitionMatrix transition_matrix_;
 
 public:
   LSMCEngine(const std::shared_ptr<State> &state_A,
