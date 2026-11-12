@@ -28,7 +28,7 @@ console = Console()
 
 
 class Simulation:
-    def __init__(self) -> None:
+    def __init__(self, seed) -> None:
         self.radius = 0.5
         self.nx, self.ny, self.nz = 6, 6, 6
         self.n = self.nx * self.ny * self.nz
@@ -44,7 +44,7 @@ class Simulation:
         self.m_off = -self.min_m
         self.sweeps = 1_000  # sweeps per batch
         self.batches = 50_000
-        self.seed = 1
+        self.seed = seed
 
         # Log config
         self.print_interval = 10
@@ -307,5 +307,5 @@ class Simulation:
 
 
 if __name__ == "__main__":
-    sim = Simulation()
+    sim = Simulation(seed=1)
     sim.run()
