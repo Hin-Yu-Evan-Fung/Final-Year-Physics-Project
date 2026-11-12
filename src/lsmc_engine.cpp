@@ -36,6 +36,14 @@ size_t LSMCEngine::run_batch(size_t sweeps, double max_disp) {
       int M_before = M_;
       int M_after = M_ + delta_M;
 
+      // Record the unbiased transition before applying the sampling bias
+      if (in_range(M_after)) {
+        transition_matrix_.record(M_before,M_after,1);
+      } else {
+        // If attempted to go out of the range of M then update diagonal and leave off diagonal the same
+        transition_matrix_.record(M_before,M_before,0.0);
+      }
+
       double u_old = lookup_bias(M_before);
       double u_new = lookup_bias(M_after);
       double delta_U = u_new - u_old;
@@ -47,6 +55,9 @@ size_t LSMCEngine::run_batch(size_t sweeps, double max_disp) {
         M_ = M_after;
         accepted_moves++;
       }
+    } else {
+      // A physical overlap means unbiased acceptance is zero.
+      transition_matrix_.record(M_,M_,0.0);
     }
 
     // Update bias at M

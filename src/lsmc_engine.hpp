@@ -40,7 +40,8 @@ public:
              const std::shared_ptr<State> &state_B, int min_M, int max_M,
              uint64_t seed)
       : state_A_(state_A), state_B_(state_B), active_(state_A_.get()),
-        passive_(state_B_.get()), rng_(seed), min_M_(min_M), max_M_(max_M) {
+        passive_(state_B_.get()), rng_(seed), min_M_(min_M), max_M_(max_M),
+        transition_matrix_(min_M,max_M) {
     if (state_A_->n() != state_B_->n())
       throw std::runtime_error(
           "Both states should have the same number of particles");
@@ -92,6 +93,16 @@ public:
 
   Lattice active_lattice() const { return active_lattice_; }
   const State &active_state() const { return *active_; }
+
+  // Inspect collection statistics without copying or modifying the matrix.
+  const TransitionMatrix &transition_matrix() const {
+    return transition_matrix_;
+}
+
+  // Clear collection statistics independently of Wang-Landau statistics.
+  void reset_transition_matrix() {
+    transition_matrix_.reset();
+}
 };
 
 } // namespace hpmc
