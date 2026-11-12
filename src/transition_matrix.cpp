@@ -73,4 +73,24 @@ void TransitionMatrix::reset() {
     std::fill(collection_.begin(), collection_.end(), 0.0);
 }
 
+double TransitionMatrix::transition_probability(
+    int from_M, int to_M
+) const {
+    const std::size_t entry = matrix_index(from_M, to_M);
+    const std::size_t row_start = matrix_index(from_M, min_M_);
+
+    double row_total = 0.0;
+    for (std::size_t column = 0; column < num_bins_; ++column) {
+        row_total += collection_[row_start + column];
+    }
+
+    if (row_total == 0.0) {
+        throw std::runtime_error(
+            "Cannot estimate transitions from an unsampled macrostate"
+        );
+    }
+
+    return collection_[entry] / row_total;
+}
+
 } // namespace hpmc

@@ -16,6 +16,10 @@ public:
     // Read a collection-matrix entry using macrostate values.
     double count(int from_M, int to_M) const;
 
+    // Return the estimated unbiased transition probability.
+    // Throws if no attempts have been recorded from from_M.
+    double transition_probability(int from_M, int to_M) const;
+
     // Clear all accumulated statistics.
     void reset();
 

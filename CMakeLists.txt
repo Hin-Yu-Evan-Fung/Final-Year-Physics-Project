@@ -32,6 +32,7 @@ set(SOURCES
   src/state/cell_list.cpp
   src/single_engine.cpp
   src/lsmc_engine.cpp
+  src/transition_matrix.cpp
 )
 
 nanobind_add_module(
