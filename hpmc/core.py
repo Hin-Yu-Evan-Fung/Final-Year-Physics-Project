@@ -64,6 +64,9 @@ class LSMCEngine:
         self._state_a_ref = state_a
         self._state_b_ref = state_b
 
+        self.min_M = min_M
+        self.max_M = max_M
+
         # Instantiate the raw nanobind C++ engine
         self._engine = _LSMCEngine(state_a.state, state_b.state, min_M, max_M, seed)
 
