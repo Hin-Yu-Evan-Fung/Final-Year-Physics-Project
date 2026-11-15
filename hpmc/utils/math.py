@@ -36,3 +36,34 @@ def generate_dist_matrix(
 
     # Compute Euclidean norm along the coordinate axis
     return np.sqrt(dx**2 + dy**2 + dz**2)
+
+
+def log_sum_exp(log_arr: np.ndarray) -> float:
+    """Stable log sum exp for free energy difference calculation"""
+    x_max = np.max(log_arr)
+    return float(x_max + np.log(np.sum(np.exp(log_arr - x_max))))
+
+
+def calculate_free_energy(
+    visit_counts: np.ndarray,
+    bias_weights: np.ndarray,
+    m_off: int,
+    n_particles: int,
+) -> float:
+    """Calculates free energy difference based on visit counts and bias weights"""
+
+    counts = np.array(visit_counts, dtype=np.float64, copy=True)
+    biases = np.array(bias_weights, dtype=np.float64, copy=True)
+    ln_g = np.log(counts) + biases
+
+    # Calculate log(Z) directly to avoid underflow/overflow issues
+    log_Z_fcc = log_sum_exp(ln_g[:m_off])
+    log_Z_hcp = log_sum_exp(ln_g[m_off + 1 :])
+
+    # delta_F = -ln(Z_hcp / Z_fcc)
+    return -(log_Z_hcp - log_Z_fcc) / n_particles
+
+
+def sphere_density_to_pack_frac(reduced_density: float, radius: float) -> float:
+    """Calculate packing fraction from reduced density"""
+    return reduced_density * np.sqrt(2) * (4 / 3) * np.pi * radius**3
