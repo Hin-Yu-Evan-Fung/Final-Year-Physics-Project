@@ -70,6 +70,7 @@ class Sim:
             self._progress.stop()
 
         self.save_result()
+        self.save_summary_plots()
         self.print_summary()
 
         if exc_type is KeyboardInterrupt:
@@ -137,7 +138,7 @@ class Sim:
             m_axis,
             self.lsmc.bias_weights,
             f"{self.outdir}/final_bias.png",
-            "Wang Landau Bias (HCP vs FCC)",
+            "Wang Landau Bias",
             "Overlap parameter M",
             "Bias",
             xlim=(min_m, max_m),
@@ -147,7 +148,7 @@ class Sim:
             m_axis,
             np.exp(self.lsmc.bias_weights),
             f"{self.outdir}/final_bias_exp.png",
-            "Wang Landau Bias (HCP vs FCC)",
+            "Wang Landau Bias",
             "Overlap parameter M",
             "Exp(Bias)",
             xlim=(min_m, max_m),

@@ -1,0 +1,32 @@
+{
+  "system": {
+    "radius": 0.5,
+    "rho": 0.7778,
+    "nx": 6,
+    "ny": 6,
+    "nz": 18
+  },
+  "lattice_1": {
+    "sequence": "ABC"
+  },
+  "lattice_2": {
+    "sequence": "ABACACBCB"
+  },
+  "lsmc": {
+    "min_m": -250,
+    "max_m": 250,
+    "max_disp": 0.1,
+    "initial_ln_f": 1.0,
+    "batches": 50000,
+    "sweeps_per_batch": 1000
+  },
+  "output": {
+    "print_int": 10,
+    "sample_int": 500,
+    "plot_from": 2000,
+    "e_scale": 100000.0,
+    "min_e": -500.0,
+    "max_e": 500.0,
+    "benchmark_e": 133.0
+  }
+}
