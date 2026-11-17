@@ -59,3 +59,40 @@ jupytext --to markdown [filepath]
 ```bash
 jupytext --to notebook [filepath]
 ```
+
+### Simulations
+
+#### 1. Running a single simulation
+
+Run a single trajectory by specifying a configuration file, output directory, and RNG seed:
+
+```bash
+python run.py --config configs/fcc_hcp.json --outdir [outdir] --seed [seed]
+```
+
+Outputs and a copy of the resolved configuration are saved to `[outdir]/seed_[seed]/`.
+
+#### 2. Running parallel simulation
+
+##### Using GNU Parallel
+
+Make sure you have GNU parallel installed:
+
+```bash
+mkdir -p [outdir]
+seq 1 9 | parallel -j 8 "python -u scripts/run_sim.py --config [config] --outdir [outdir] --seed {} > [outdir]/seed_{}.log 2>&1"
+```
+
+* **`-j 8`**: Limits execution to 8 concurrent processes (one per CPU core).
+* **`python -u`**: Flushes console output immediately so log files update in real time.
+* **`> .../seed_{}.log 2>&1`**: Captures both standard output and any error tracebacks per replica.
+
+##### Using Tmux
+
+```bash
+tmux new-session -d -s lsmc -n seed_1 "python scripts/run_sim.py --config [config] --outdir [outdir] --seed 1; read"
+for s in {2..8}; do
+    tmux new-window -t lsmc -n "seed_$s" "python scripts/run_sim.py --config [config] --outdir [outdir] --seed $s; read"
+done
+tmux attach -t lsmc
+```
