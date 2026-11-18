@@ -129,6 +129,14 @@ NB_MODULE(hpmc_ext, m) {
                 e.visit_counts().data(), 1, &shape, nb::handle());
           },
           nb::rv_policy::reference_internal)
-      .def("reset_visit_counts", &LSMCEngine::reset_visit_counts);
+      .def("reset_visit_counts", &LSMCEngine::reset_visit_counts)
+      .def(
+        "collection_count",
+        [](const LSMCEngine &engine, int from_M, int to_M) {
+            return engine.transition_matrix().count(from_M, to_M);
+        },
+        nb::arg("from_M"), nb::arg("to_M"))
+      .def("reset_transition_matrix", &LSMCEngine::reset_transition_matrix);
+     
   ;
 }
