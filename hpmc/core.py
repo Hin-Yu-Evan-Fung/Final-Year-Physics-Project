@@ -115,3 +115,14 @@ class LSMCEngine:
     def reset_visit_counts(self) -> None:
         """Resets visit counts"""
         return self._engine.reset_visit_counts()
+
+    def collection_count(self, from_M: int, to_M: int) -> float:
+        """Return the collected count for a macrostate transition."""
+        return self._engine.collection_count(from_M, to_M)
+
+    def reset_transition_matrix(self) -> None:
+        """Clear collection counts without changing the bias."""
+        self._engine.reset_transition_matrix()
+
+    
+        
