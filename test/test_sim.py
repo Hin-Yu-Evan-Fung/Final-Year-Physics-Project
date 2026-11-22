@@ -68,16 +68,17 @@ def test_lattice_overlap(lattice_generator, lattice_type, packing_fraction, nx, 
         x, y, z, box = lattice_generator(
             packing_fraction=packing_fraction, radius=0.5, nx=nx, ny=ny, nz=nz
         )
-
-    state = hpmc.State(hpmc.ParticleType.Sphere, box, radius=RADIUS)
+    cfg = hpmc.SphereConfig(radius=RADIUS)
+    lat = hpmc.Lattice.from_box_lengths(box[0], box[1], box[2])
+    state = hpmc.State(cfg, lat)
     state.set_coords(x, y, z)
 
-    assert state.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert state.count_all_overlaps() == 0, "There should be no particle overlaps initially"
 
-    sim = hpmc.SingleBoxEngine(state)
+    sim = hpmc.BoxEngine(state)
     sim.run_batch(sweeps=SWEEPS, max_disp=MAX_DISP)
 
-    assert state.count_overlaps() == 0, "There should be no particle overlaps after"
+    assert state.count_all_overlaps() == 0, "There should be no particle overlaps after"
 
     new_pos = state.get_coords()
     dist_matrix = generate_dist_matrix(*new_pos, box)
@@ -136,18 +137,20 @@ def test_mixed_lattice_overlaps(seq, packing_fraction, nx, ny, nz):
 
     x, y, z, box = generate_mixed_lattice(packing_fraction, RADIUS, seq, nx, ny, nz)
 
-    state = hpmc.State(hpmc.ParticleType.Sphere, list(box), radius=RADIUS)
+    cfg = hpmc.SphereConfig(radius=RADIUS)
+    lat = hpmc.Lattice.from_box_lengths(box[0], box[1], box[2])
+    state = hpmc.State(cfg, lat)
     state.set_coords(x, y, z)
 
-    assert state.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert state.count_all_overlaps() == 0, "There should be no particle overlaps initially"
 
-    sim = hpmc.SingleBoxEngine(state)
+    sim = hpmc.BoxEngine(state)
     sim.run_batch(sweeps=SWEEPS, max_disp=MAX_DISP)
 
-    assert state.count_overlaps() == 0, "There should be no particle overlaps after"
+    assert state.count_all_overlaps() == 0, "There should be no particle overlaps after"
 
     new_pos = state.get_coords()
-    dist_matrix = generate_dist_matrix(*new_pos, list(box))
+    dist_matrix = generate_dist_matrix(*new_pos, box)
 
     rows, cols = np.triu_indices(nx * ny * nz, k=1)
     unique_distances = dist_matrix[rows, cols]

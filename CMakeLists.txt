@@ -28,9 +28,10 @@ FetchContent_MakeAvailable(nanobind)
 # -----------------------------------------------------------------------------
 
 set(SOURCES
-  src/state/state.cpp
+  src/core/lattice.cpp
   src/state/cell_list.cpp
-  src/single_engine.cpp
+  src/state/state.cpp
+  src/box_engine.cpp
   src/lsmc_engine.cpp
 )
 
@@ -48,20 +49,20 @@ target_include_directories(hpmc_ext PRIVATE src)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # Apple Clang (macOS) & LLVM Clang (Linux/Windows-MinGW)
   target_compile_options(hpmc_ext PRIVATE
-    $<$<CONFIG:Release>:-g -O3 -flto>
+    $<$<CONFIG:Release>:-g -O3>
     $<$<CONFIG:Debug>:-g -Og>
   )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   # Pure GCC optimizations
   target_compile_options(hpmc_ext PRIVATE
-    -Wall -Wextra -Wsign-compare -Wconversion
-    $<$<CONFIG:Release>:-g -O3 -flto -march=native -ffast-math>
+    $<$<CONFIG:Release>:-g -O3 -march=native -ffast-math>
     $<$<CONFIG:Debug>:-g -Og -fno-inline>
   )
 endif()
 
 set_target_properties(hpmc_ext PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hpmc/"
+  INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
 )
 
 nanobind_add_stub(
@@ -95,7 +96,6 @@ add_executable(hpmc_tests ${SOURCES} ${GTEST_SOURCES})
 
 target_include_directories(hpmc_tests PRIVATE src)
 target_link_libraries(hpmc_tests PRIVATE gtest_main)
-target_compile_definitions(hpmc_tests PRIVATE $<$<CONFIG:Release>:NDEBUG>)
 target_compile_options(hpmc_tests PRIVATE $<$<CONFIG:Release>:-O3>)
 
 add_test(NAME core_unit_tests COMMAND hpmc_tests)

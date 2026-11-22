@@ -107,13 +107,15 @@ def test_thermodynamic_ideal_gas_limit(
     x, y, z, box = lattice_generator(**gen_kwargs)
 
     # 3. Initialize simulation environment
-    state = hpmc.State(hpmc.ParticleType.Sphere, box, radius=RADIUS)
+    cfg = hpmc.SphereConfig(radius=RADIUS)
+    lat = hpmc.Lattice.from_box_lengths(box[0], box[1], box[2])
+    state = hpmc.State(cfg, lat)
     state.set_coords(x, y, z)
 
-    assert state.count_overlaps() == 0, "There should be no particle overlaps initially"
+    assert state.count_all_overlaps() == 0, "There should be no particle overlaps initially"
 
     # Long Equilibrate Phase: Melt the grid completely
-    sim = hpmc.SingleBoxEngine(state)
+    sim = hpmc.BoxEngine(state)
     sim.run_batch(sweeps=eq_sweeps, max_disp=max_disp)
 
     # Production Phase: Sample the system 5 times to smooth out frame noise

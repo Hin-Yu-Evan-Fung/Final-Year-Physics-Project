@@ -20,9 +20,11 @@ def make_state(seed, lattice_type):
 
     x, y, z, box = generate_lattice(ETA, RADIUS, lattice_type, 6, 6, 6)
 
-    s = hpmc.State(hpmc.ParticleType.Sphere, list(box), radius=RADIUS)
+    cfg = hpmc.SphereConfig(radius=RADIUS)
+    lat = hpmc.Lattice.from_box_lengths(box[0], box[1], box[2])
+    s = hpmc.State(cfg, lat)
     s.set_coords(x, y, z)
-    assert s.count_overlaps() == 0
+    assert s.count_all_overlaps() == 0
     return s
 
 
@@ -40,13 +42,34 @@ def make_sim():
 
 
 def test_starts_at_zero(make_sim):
-    assert make_sim().current_M == 0
+    assert make_sim().M == 0
+
+
+def test_initial_M_is_overlap_difference():
+    lattice = hpmc.Lattice.from_cubic(8.0)
+    cfg = hpmc.SphereConfig(radius=0.5)
+
+    state_a = hpmc.State(cfg, lattice)
+    state_b = hpmc.State(cfg, lattice)
+    state_a.set_coords(
+        np.array([1.0, 3.0]),
+        np.array([1.0, 1.0]),
+        np.array([1.0, 1.0]),
+    )
+    state_b.set_coords(
+        np.array([1.0, 1.1]),
+        np.array([1.0, 1.0]),
+        np.array([1.0, 1.0]),
+    )
+
+    sim = hpmc.LSMCEngine(state_a, state_b, -10, 10)
+    assert sim.M == state_a.count_all_overlaps() - state_b.count_all_overlaps()
 
 
 def test_negative_and_positive_M_both_visited(make_sim):
     sim = make_sim()
     sim.set_bias_weights(np.zeros_like(sim.bias_weights))
-    for _ in range(50):
+    for _ in range(200):
         sim.run_batch(sweeps=50, max_disp=0.15)
     v = sim.visit_counts
     assert v[:OFFSET].sum() > 0, "never visited M < 0"
@@ -68,7 +91,7 @@ def test_M_stays_in_range(make_sim):
     for _ in range(30):
         sim.run_batch(sweeps=20, max_disp=0.15)
         sim.reset_visit_counts()
-        assert MIN_M <= sim.current_M <= MAX_M
+        assert MIN_M <= sim.M <= MAX_M
 
 
 def test_bias_equals_visits_for_constant_f(make_sim):

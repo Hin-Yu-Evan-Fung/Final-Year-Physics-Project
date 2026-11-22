@@ -85,9 +85,13 @@ class Config:
 
 
 def build_sphere_state(s: SystemConfig, l: LatticeConfig) -> hpmc.State:
-    lat = generate_mixed_lattice(s.pack_frac, s.radius, l.sequence, s.nx, s.ny, s.nz)
-    state = hpmc.State(hpmc.ParticleType.Sphere, list(lat[3]), radius=s.radius)
-    state.set_coords(*lat[:3])
+    x, y, z, box = generate_mixed_lattice(
+        s.pack_frac, s.radius, l.sequence, s.nx, s.ny, s.nz
+    )
+    cfg = hpmc.SphereConfig(radius=s.radius)
+    lat = hpmc.Lattice.from_box_lengths(box[0], box[1], box[2])
+    state = hpmc.State(cfg, lat)
+    state.set_coords(x, y, z)
     return state
 
 
@@ -98,11 +102,11 @@ def run_sim(
 ) -> None:
     fcc = build_sphere_state(config.system, config.lattice_1)
     hcp = build_sphere_state(config.system, config.lattice_2)
-    assert fcc.n_particles() == hcp.n_particles()
+    assert fcc.n() == hcp.n()
 
     cfg = SimConfig(config.lsmc.sweeps_per_batch, config.lsmc.batches)
     engine = hpmc.LSMCEngine(fcc, hcp, config.lsmc.min_m, config.lsmc.max_m, seed=seed)
-    engine.wl_ln_f = 1.0
+    engine.wl_ln_f = config.lsmc.initial_ln_f
 
     outdir = os.path.join(base_dir, f"seed_{seed}")
 
@@ -113,7 +117,7 @@ def run_sim(
             sim.record_batch(config.lsmc.m_off, config.system.n_particles)
 
             if sim.is_visit_counts_flat():
-                sim.advance_wl_stage(batch)
+                sim.advance_wl_stage()
                 sim.console.log(
                     "[bold green][CONVERGED][/] ln(f) dropped to [bold white]"
                     f"{sim.lsmc.wl_ln_f:.10f}[/] at {batch * cfg.sweeps_per_batch} sweeps."

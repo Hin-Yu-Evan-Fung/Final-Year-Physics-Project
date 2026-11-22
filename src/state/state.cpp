@@ -1,90 +1,60 @@
-#include "state.hpp"
-#include <cassert>
-#include <variant>
+#include "state/state.hpp"
 
 namespace hpmc {
 
-// ====================================================================
-//                           Implementation
-// ====================================================================
-
 void State::set_coords(std::span<const double> x, std::span<const double> y,
                        std::span<const double> z) {
-  n_ = x.size();
+  const size_t new_n = x.size();
+  if (y.size() != new_n || z.size() != new_n) {
+    throw std::invalid_argument("Incoming coordinate span sizes do not match!");
+  }
 
-  // Assert that the coordinates have consistent lengths
-  if (y.size() != n_ || z.size() != n_)
-    throw std::runtime_error("Incoming coordinate span sizes do not match!");
+  n_ = new_n;
 
   // Copy the coordinates
   x_.assign(x.begin(), x.end());
   y_.assign(y.begin(), y.end());
   z_.assign(z.begin(), z.end());
 
+  double min_cell_width = std::visit(
+      [&](const auto &cfg) { return cfg.min_cell_width(); }, config_);
+
   // Resize cell list to include all the new particles
-  cell_list_.resize(
-      box_,
-      std::visit([&](auto &&active_cfg) { return active_cfg.min_cell_width(); },
-                 config_),
-      (int)n_);
+  cell_list_.resize(lattice_, min_cell_width, n_);
 
   // Insert particles into the cell list
-  for (size_t i = 0; i < n_; ++i) {
-    int cell_idx = cell_list_.get_cell_index(pos_at(i));
-    cell_list_.insert((int)i, cell_idx);
+  for (int i = 0; i < n_; ++i) {
+    const Vec3 wrapped = lattice_.wrap(pos_at(i));
+    x_[i] = wrapped.x;
+    y_[i] = wrapped.y;
+    z_[i] = wrapped.z;
+
+    const int cell_idx = cell_list_.get_cell_index(lattice_, wrapped);
+    cell_list_.insert(i, cell_idx);
   }
 }
 
-// TODO: Expand to work for Dumbbells
-bool State::check_overlap(const MoveProposal &prop) const {
-  assert(n_ > 0 && prop.idx < n_);
-
+bool State::has_overlaps(const Vec3 &pos, size_t cell, int excl_idx) const {
   return std::visit(
-      [&](auto &&active_cfg) { return overlap(active_cfg, prop); }, config_);
-}
-
-// TODO: Expand to work for Dumbbells
-size_t State::count_local_overlaps(size_t idx, const Vec3 &pos,
-                                   size_t cell) const {
-  assert(n_ > 0);
-
-  return std::visit(
-      [&](auto &&active_cfg) {
-        return local_overlaps(active_cfg, idx, pos, cell);
+      [&](const auto &cfg) {
+        return local_overlaps<true>(cfg, pos, cell, excl_idx) > 0;
       },
       config_);
 }
-
-// TODO: Expand to work for Dumbbells
-size_t State::count_global_overlaps() const {
-  assert(n_ > 0);
-
+size_t State::count_overlaps(const Vec3 &pos, size_t cell, int excl_idx) const {
   return std::visit(
-      [&](auto &&active_cfg) { return global_overlaps(active_cfg); }, config_);
+      [&](const auto &cfg) {
+        return local_overlaps<false>(cfg, pos, cell, excl_idx);
+      },
+      config_);
+}
+bool State::has_any_overlaps() const {
+  return std::visit(
+      [&](const auto &cfg) { return global_overlaps<true>(cfg) > 0; }, config_);
+}
+size_t State::count_all_overlaps() const {
+  return std::visit(
+      [&](const auto &cfg) { return global_overlaps<false>(cfg); }, config_);
 }
 
-MoveProposal State::propse_translation(size_t idx, const Vec3 &displacement) {
-  assert(n_ > 0 && idx < n_);
-
-  MoveProposal prop;
-  prop.idx = idx;
-  prop.old_pos = pos_at(idx);
-  prop.old_cell = cell_list_.get_particle_cell(idx);
-  prop.new_pos = box_.wrap(prop.old_pos + displacement);
-  prop.new_cell = cell_list_.get_cell_index(prop.new_pos);
-
-  return prop;
-}
-
-void State::accept_translation(const MoveProposal &prop) {
-  x_[prop.idx] = prop.new_pos.x;
-  y_[prop.idx] = prop.new_pos.y;
-  z_[prop.idx] = prop.new_pos.z;
-
-  if (prop.new_cell != prop.old_cell) {
-    cell_list_.remove((int)prop.idx, prop.old_cell);
-    cell_list_.insert((int)prop.idx, prop.new_cell);
-  }
-}
-
-}; // namespace hpmc
+} // namespace hpmc

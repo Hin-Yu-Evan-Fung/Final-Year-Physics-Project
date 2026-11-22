@@ -1,82 +1,100 @@
+#include "core/lattice.hpp"
 #include "core/vec3.hpp"
-#include "particle/sphere.hpp"
+#include "state/shape.hpp"
 #include "state/state.hpp"
+
 #include <gtest/gtest.h>
 
 using namespace hpmc;
 
-class StateTest : public ::testing::Test {
+class StateTest : public ::testing::TestWithParam<Lattice> {
 protected:
-  double L_;
-  SphereConfig config_;
-
-  void SetUp() override {
-    L_ = 10.0;
-    config_.radius = 1.0;
-  }
+  SphereConfig config_{1.0};
+  Lattice lattice_ = GetParam();
+  State state_{config_, lattice_};
 };
 
-TEST_F(StateTest, SetCoords) {
-  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
+TEST_P(StateTest, SetCoords) {
+  const Vec3 p0 = lattice_.to_cart({0.1, 0.1, 0.1});
+  const Vec3 p1 = lattice_.to_cart({0.5, 0.5, 0.5});
 
-  std::vector<double> initial_x = {1.0, 5.0};
-  std::vector<double> initial_y = {1.0, 5.0};
-  std::vector<double> initial_z = {1.0, 5.0};
+  state_.set_coords({{p0.x, p1.x}}, {{p0.y, p1.y}}, {{p0.z, p1.z}});
 
-  state.set_coords(initial_x, initial_y, initial_z);
-
-  ASSERT_EQ(state.n(), 2);
-  EXPECT_DOUBLE_EQ(state.pos_at(0).x, 1.0);
-  EXPECT_DOUBLE_EQ(state.pos_at(1).x, 5.0);
+  ASSERT_EQ(state_.n(), 2);
+  EXPECT_NEAR(state_.pos_at(0).x, p0.x, 1e-12);
+  EXPECT_NEAR(state_.pos_at(1).x, p1.x, 1e-12);
 }
 
-TEST_F(StateTest, TranslationAccept) {
-  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
-  std::vector<double> initial_x = {1.0};
-  std::vector<double> initial_y = {1.0};
-  std::vector<double> initial_z = {1.0};
-  state.set_coords(initial_x, initial_y, initial_z);
+TEST_P(StateTest, TranslationAccept) {
+  const Vec3 p0 = lattice_.to_cart({0.1, 0.1, 0.1});
+  state_.set_coords({{p0.x}}, {{p0.y}}, {{p0.z}});
 
-  Vec3 displacement{0.5, -0.2, 0.1};
-  const auto &prop = state.propse_translation(0, displacement);
-  EXPECT_FALSE(state.check_overlap(prop));
-  state.accept_translation(prop);
+  const Vec3 displacement{0.5, -0.2, 0.1};
+  const Vec3 expected = lattice_.wrap(p0 + displacement);
 
-  // Verify the state has mutated immediately in memory
-  EXPECT_DOUBLE_EQ(state.pos_at(0).x, 1.5);
-  EXPECT_DOUBLE_EQ(state.pos_at(0).y, 0.8);
-  EXPECT_DOUBLE_EQ(state.pos_at(0).z, 1.1);
+  const PosCell proposed = state_.translated(0, displacement);
+  const Vec3 new_pos = proposed.pos;
+  const int new_cell = proposed.cell;
+
+  EXPECT_FALSE(state_.has_overlaps(new_pos, new_cell, 0));
+  state_.set_pos(0, new_pos, new_cell);
+
+  EXPECT_NEAR(state_.pos_at(0).x, expected.x, 1e-12);
+  EXPECT_NEAR(state_.pos_at(0).y, expected.y, 1e-12);
+  EXPECT_NEAR(state_.pos_at(0).z, expected.z, 1e-12);
+  EXPECT_EQ(state_.cell_of(0), proposed.cell);
 }
 
-TEST_F(StateTest, TranslationReject) {
-  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
-  std::vector<double> initial_x = {1.0, 3.5};
-  std::vector<double> initial_y = {1.0, 4.0};
-  std::vector<double> initial_z = {1.0, 0.0};
-  state.set_coords(initial_x, initial_y, initial_z);
+TEST_P(StateTest, TranslationReject) {
+  const Vec3 p0 = lattice_.to_cart({0.1, 0.1, 0.1});
+  const Vec3 p1 = lattice_.to_cart({0.5, 0.5, 0.5});
+  state_.set_coords({{p0.x, p1.x}}, {{p0.y, p1.y}}, {{p0.z, p1.z}});
 
-  Vec3 displacement{2.5, 3.0, -1.0};
-  const auto &prop = state.propse_translation(0, displacement);
-  EXPECT_TRUE(state.check_overlap(prop));
+  // Displace particle 0 right into particle 1
+  const Vec3 displacement = p1 - p0;
+  const Vec3 new_pos = state_.displaced_pos(0, displacement);
+  const int new_cell = state_.cell_of(new_pos);
 
-  EXPECT_DOUBLE_EQ(state.pos_at(0).x, 1.0);
-  EXPECT_DOUBLE_EQ(state.pos_at(0).y, 1.0);
-  EXPECT_DOUBLE_EQ(state.pos_at(0).z, 1.0);
+  EXPECT_TRUE(state_.has_overlaps(new_pos, new_cell, 0));
+
+  // Verify coordinates did not mutate
+  EXPECT_NEAR(state_.pos_at(0).x, p0.x, 1e-12);
+  EXPECT_NEAR(state_.pos_at(0).y, p0.y, 1e-12);
+  EXPECT_NEAR(state_.pos_at(0).z, p0.z, 1e-12);
 }
 
-TEST_F(StateTest, TranslatePBC) {
-  State state(ParticleType::Sphere, {L_, L_, L_}, config_);
-  std::vector<double> initial_x = {9.5};
-  std::vector<double> initial_y = {1.0};
-  std::vector<double> initial_z = {1.0};
+TEST_P(StateTest, TranslatePBC) {
+  // Start near the upper fractional boundary (0.95) and push past 1.0 -> wraps
+  // to 0.05
+  const Vec3 p0 = lattice_.to_cart({0.95, 0.1, 0.1});
+  const Vec3 expected = lattice_.to_cart({0.05, 0.1, 0.1});
+  state_.set_coords({{p0.x}}, {{p0.y}}, {{p0.z}});
 
-  state.set_coords(initial_x, initial_y, initial_z);
+  // Shift by +0.1 along the first lattice vector `a`
+  const Vec3 displacement = lattice_.a * 0.1;
+  const Vec3 new_pos = state_.displaced_pos(0, displacement);
+  const int new_cell = state_.cell_of(new_pos);
 
-  // Pushing X past the box boundary (9.5 + 1.0 = 10.5 -> wraps to 0.5)
-  Vec3 displacement{1.0, 0.0, 0.0};
-  const auto &prop = state.propse_translation(0, displacement);
-  EXPECT_FALSE(state.check_overlap(prop));
-  state.accept_translation(prop);
+  EXPECT_FALSE(state_.has_overlaps(new_pos, new_cell, 0));
+  state_.set_pos(0, new_pos, new_cell);
 
-  EXPECT_DOUBLE_EQ(state.pos_at(0).x, 0.5);
+  EXPECT_NEAR(state_.pos_at(0).x, expected.x, 1e-12);
+  EXPECT_NEAR(state_.pos_at(0).y, expected.y, 1e-12);
+  EXPECT_NEAR(state_.pos_at(0).z, expected.z, 1e-12);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Lattices, StateTest,
+    ::testing::Values(
+        // Standard Cubic (10 x 10 x 10)
+        Lattice::from_upper_triangular({10.0, 0.0, 0.0}, {0.0, 10.0, 0.0},
+                                       {0.0, 0.0, 10.0}),
+        // Orthorhombic
+        Lattice::from_upper_triangular({8.0, 0.0, 0.0}, {0.0, 10.5, 0.0},
+                                       {0.0, 0.0, 12.0}),
+        // Hexagonal / HCP-style (60-degree xy angle)
+        Lattice::from_upper_triangular({10.0, 0.0, 0.0}, {5.0, 8.66025, 0.0},
+                                       {0.0, 0.0, 11.0}),
+        // Strongly Sheared Triclinic
+        Lattice::from_upper_triangular({10.0, 0.0, 0.0}, {4.0, 9.0, 0.0},
+                                       {-3.0, 3.5, 8.5})));

@@ -45,4 +45,15 @@ TEST(Vec3Test, Norms) {
   Vec3 v{3.0, 4.0, 0.0};
   // Verify norm squared mapping matches 3^2 + 4^2 = 25
   EXPECT_DOUBLE_EQ(v.norm2(), 25.0);
+  EXPECT_DOUBLE_EQ(v.norm(), 5.0);
+}
+
+TEST(Vec3Test, CrossProduct) {
+  Vec3 x{1.0, 0.0, 0.0};
+  Vec3 y{0.0, 1.0, 0.0};
+  Vec3 z = x.cross(y);
+
+  EXPECT_DOUBLE_EQ(z.x, 0.0);
+  EXPECT_DOUBLE_EQ(z.y, 0.0);
+  EXPECT_DOUBLE_EQ(z.z, 1.0);
 }

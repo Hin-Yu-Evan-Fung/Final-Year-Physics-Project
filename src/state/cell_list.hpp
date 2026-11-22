@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/box.hpp"
+#include "core/lattice.hpp"
 #include "core/vec3.hpp"
 
 #include <cassert>
@@ -9,7 +9,9 @@
 namespace hpmc {
 
 class CellList {
-  const Box *box_ = nullptr;
+
+  static constexpr int EMPTY = -1;
+
   Vec3 cell_dims_{};
   int x_cells_ = 0, y_cells_ = 0, z_cells_ = 0;
   size_t total_cells_ = 0;
@@ -18,7 +20,7 @@ class CellList {
   std::vector<int> next_{};     // Size: num_particles
   std::vector<int> cell_map_{}; // Size: num_particles
 
-  std::vector<std::array<size_t, 27>> neighbours_{};
+  std::vector<std::array<int, 27>> neighbours_{};
 
   // Wraps cell indices based on periodic boundary conditions
   constexpr int grid_pbc_wrap(int d, int n) const {
@@ -29,12 +31,6 @@ class CellList {
   void precompute_neighbours();
 
 public:
-  CellList() = default;
-  CellList(const Box &box, double min_cell_width, size_t num_particles)
-      : box_(&box) {
-    resize(box, min_cell_width, num_particles);
-  }
-
   // Convert to 3d cell coordinates
   constexpr void index_to_3d(int index, int &cx, int &cy, int &cz) const {
     cx = index % x_cells_;
@@ -42,24 +38,27 @@ public:
     cz = index / (x_cells_ * y_cells_);
   }
 
-  void resize(const Box &box, double min_cell_width, size_t num_particles);
-  void insert(size_t particle_idx, size_t cell_idx);
-  void remove(size_t particle_idx, size_t cell_idx);
+  void resize(const Lattice &lattice, double min_cell_width,
+              size_t num_particles);
 
-  int get_cell_index(const Vec3 &pos) const;
+  void insert(int particle_idx, int cell_idx);
+  void remove(int particle_idx, int cell_idx);
+
+  int get_cell_index_from_fractional(const Vec3 &s) const;
+  int get_cell_index(const Lattice &lattice, const Vec3 &pos) const;
 
   constexpr int x_cells() const { return x_cells_; }
   constexpr int y_cells() const { return y_cells_; }
   constexpr int z_cells() const { return z_cells_; }
 
   size_t total_cells() const { return total_cells_; }
-  int get_head(size_t cell_idx) const { return head_[cell_idx]; }
-  int get_next(size_t particle_idx) const { return next_[particle_idx]; }
-  int get_particle_cell(size_t particle_idx) const {
-    return cell_map_[(size_t)particle_idx];
+  int get_head(int cell_idx) const { return head_[cell_idx]; }
+  int get_next(int particle_idx) const { return next_[particle_idx]; }
+  int get_particle_cell(int particle_idx) const {
+    return cell_map_[particle_idx];
   }
 
-  const std::array<size_t, 27> &get_neighbours(size_t cell_idx) const {
+  const std::array<int, 27> &get_neighbours(size_t cell_idx) const {
     return neighbours_[cell_idx];
   }
 };

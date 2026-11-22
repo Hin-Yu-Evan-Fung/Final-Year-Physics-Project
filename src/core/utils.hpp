@@ -1,10 +1,30 @@
 #pragma once
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 
 namespace hpmc {
+
+// ==========================================
+//                  ND Array
+// ==========================================
+
+template <typename T, size_t A, size_t... B> struct NDArrayImpl {
+  using type = std::array<typename NDArrayImpl<T, B...>::type, A>;
+};
+
+template <typename T, size_t A> struct NDArrayImpl<T, A> {
+  using type = std::array<T, A>;
+};
+
+template <typename T, size_t... Dims>
+using NDArray = typename NDArrayImpl<T, Dims...>::type;
+
+// ==========================================
+//                    PRNG
+// ==========================================
 
 // xoshiro256++ 1.0 paired with a SplitMix64 initialiser
 class PRNG {

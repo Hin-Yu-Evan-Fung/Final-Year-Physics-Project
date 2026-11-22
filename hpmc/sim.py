@@ -114,7 +114,7 @@ class Sim:
 
     def advance_wl_stage(self, factor: float = 0.5) -> None:
         """Multiples current wl_ln_f by factor and resets visit counts"""
-        self.lsmc.wl_ln_f /= 2
+        self.lsmc.wl_ln_f *= factor
         self.total_visit_counts += self.lsmc.visit_counts
         self.lsmc.reset_visit_counts()
 

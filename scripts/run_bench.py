@@ -63,15 +63,19 @@ def main():
     num_particles = len(x)
     print(f" -> Initialised {num_particles:,} particles in box dimensions: {box}")
 
-    state = hpmc.State(hpmc.ParticleType.Sphere, list(box), radius=RADIUS)
+    cfg = hpmc.SphereConfig(radius=RADIUS)
+    lat = hpmc.Lattice.from_box_lengths(box[0], box[1], box[2])
+    state = hpmc.State(cfg, lat)
     state.set_coords(x, y, z)
 
-    assert state.count_overlaps() == 0, "There should be no particle overlaps initially"
-    assert state.n_particles() == num_particles
+    assert state.count_all_overlaps() == 0, (
+        "There should be no particle overlaps initially"
+    )
+    assert state.n() == num_particles
 
     print(" -> Executing C++ batch update sweep...")
 
-    sim = hpmc.SingleBoxEngine(state)
+    sim = hpmc.BoxEngine(state)
 
     start_time = time.perf_counter()
     accepted = sim.run_batch(sweeps=args.sweeps, max_disp=0.1)
