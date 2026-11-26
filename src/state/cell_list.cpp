@@ -1,11 +1,13 @@
-#include "cell_list.hpp"
+
+#include "state/cell_list.hpp"
+#include "core/utils.hpp"
 
 namespace hpmc {
 
 void CellList::precompute_neighbours() {
 
   // clang-format off
-  static const int OFFSETS[27][3] = {
+  static constexpr NDArray<int, 27, 3> OFFSETS = {{
     // Center (1)
     { 0,  0,  0},
     // Faces (6)
@@ -16,16 +18,16 @@ void CellList::precompute_neighbours() {
     { 0,  1,  1}, { 0,  1, -1}, { 0, -1,  1}, { 0, -1, -1},
     // Corners (8)
     { 1,  1,  1}, { 1,  1, -1}, { 1, -1,  1}, { 1, -1, -1},
-    {-1,  1,  1}, {-1,  1, -1}, {-1, -1,  1}, {-1, -1, -1}
+    {-1,  1,  1}, {-1,  1, -1}, {-1, -1,  1}, {-1, -1, -1}}
   };
   // clang-format on
 
   neighbours_.resize(total_cells_);
-  for (size_t cell_idx = 0; cell_idx < total_cells_; ++cell_idx) {
+  for (int cell_idx = 0; cell_idx < total_cells_; ++cell_idx) {
     int cx, cy, cz;
-    index_to_3d((int)cell_idx, cx, cy, cz);
+    index_to_3d(cell_idx, cx, cy, cz);
 
-    for (size_t i = 0; i < 27; ++i) {
+    for (int i = 0; i < 27; ++i) {
       int nx = grid_pbc_wrap(cx + OFFSETS[i][0], x_cells_);
       int ny = grid_pbc_wrap(cy + OFFSETS[i][1], y_cells_);
       int nz = grid_pbc_wrap(cz + OFFSETS[i][2], z_cells_);
@@ -35,62 +37,71 @@ void CellList::precompute_neighbours() {
   }
 }
 
-void CellList::resize(const Box &box, double min_cell_width,
+void CellList::resize(const Lattice &lattice, double min_cell_width,
                       size_t num_particles) {
-  box_ = &box;
-  Vec3 box_l = box_->get_dims();
+  Vec3 widths = lattice.perp_widths();
 
-  x_cells_ = (int)std::floor(box_l.x / min_cell_width);
-  y_cells_ = (int)std::floor(box_l.y / min_cell_width);
-  z_cells_ = (int)std::floor(box_l.z / min_cell_width);
+  x_cells_ = (int)std::floor(widths.x / min_cell_width);
+  y_cells_ = (int)std::floor(widths.y / min_cell_width);
+  z_cells_ = (int)std::floor(widths.z / min_cell_width);
 
-  assert(x_cells_ >= 3);
-  assert(y_cells_ >= 3);
-  assert(z_cells_ >= 3);
+  if (x_cells_ < 3 || y_cells_ < 3 || z_cells_ < 3) {
+    throw std::invalid_argument(std::format(
+        "CellList requires at least 3x3x3 cells (widths >= 3 * "
+        "min_cell_width), "
+        "got grid ({}, {}, {}) from perpendicular widths ({:.4g}, {:.4g}, "
+        "{:.4g})",
+        x_cells_, y_cells_, z_cells_, widths.x, widths.y, widths.z));
+  }
 
-  cell_dims_.x = box_l.x / x_cells_;
-  cell_dims_.y = box_l.y / y_cells_;
-  cell_dims_.z = box_l.z / z_cells_;
+  cell_dims_.x = widths.x / x_cells_;
+  cell_dims_.y = widths.y / y_cells_;
+  cell_dims_.z = widths.z / z_cells_;
 
-  total_cells_ = (size_t)(x_cells_ * y_cells_ * z_cells_);
+  total_cells_ = x_cells_ * y_cells_ * z_cells_;
 
-  head_.assign(total_cells_, -1);
-  next_.assign(num_particles, -1);
-  cell_map_.assign(num_particles, -1);
+  head_.assign(total_cells_, EMPTY);
+  next_.assign(num_particles, EMPTY);
+  cell_map_.assign(num_particles, EMPTY);
 
   precompute_neighbours();
 }
 
-int CellList::get_cell_index(const Vec3 &pos) const {
-  Vec3 wrapped = box_->wrap(pos);
+int CellList::get_cell_index(const Lattice &lattice, const Vec3 &pos) const {
+  return get_cell_index_from_fractional(lattice.to_frac(pos));
+}
 
-  int cx = static_cast<int>(wrapped.x / cell_dims_.x);
-  int cy = static_cast<int>(wrapped.y / cell_dims_.y);
-  int cz = static_cast<int>(wrapped.z / cell_dims_.z);
+int CellList::get_cell_index_from_fractional(const Vec3 &s) const {
+  // clang-format off
+  assert(s.x >= -1e-12 && s.x <= 1.0 + 1e-12 &&
+         s.y >= -1e-12 && s.y <= 1.0 + 1e-12 &&
+         s.z >= -1e-12 && s.z <= 1.0 + 1e-12 &&
+         "get_cell_index expects a wrapped position!");
+  // clang-format on
 
-  cx = std::min(cx, x_cells_ - 1);
-  cy = std::min(cy, y_cells_ - 1);
-  cz = std::min(cz, z_cells_ - 1);
+  int cx = std::clamp(static_cast<int>(s.x * x_cells_), 0, x_cells_ - 1);
+  int cy = std::clamp(static_cast<int>(s.y * y_cells_), 0, y_cells_ - 1);
+  int cz = std::clamp(static_cast<int>(s.z * z_cells_), 0, z_cells_ - 1);
 
   return cx + cy * x_cells_ + cz * x_cells_ * y_cells_;
 }
 
 // Append to the start of linked list
-void CellList::insert(size_t particle_idx, size_t cell_idx) {
+void CellList::insert(int particle_idx, int cell_idx) {
   next_[particle_idx] = head_[cell_idx];
-  head_[cell_idx] = (int)particle_idx;
-  cell_map_[particle_idx] = (int)cell_idx;
+  head_[cell_idx] = particle_idx;
+  cell_map_[particle_idx] = cell_idx;
 }
 
 // Remove particle
-void CellList::remove(size_t particle_idx, size_t cell_idx) {
+void CellList::remove(int particle_idx, int cell_idx) {
   int *link = &head_[cell_idx];
-  while (*link != (int)particle_idx) {
-    link = &next_[(size_t)*link];
+  while (*link != particle_idx) {
+    link = &next_[*link];
   }
   *link = next_[particle_idx];
-  next_[particle_idx] = -1;
-  cell_map_[particle_idx] = -1;
+  next_[particle_idx] = EMPTY;
+  cell_map_[particle_idx] = EMPTY;
 }
 
 } // namespace hpmc

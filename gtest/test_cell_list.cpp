@@ -1,36 +1,39 @@
 #include "core/utils.hpp"
 #include "core/vec3.hpp"
 #include "state/cell_list.hpp"
+
 #include <gtest/gtest.h>
 
 using namespace hpmc;
 
-class MassiveCellListTest : public ::testing::Test {
+class CellListTest : public ::testing::TestWithParam<Lattice> {
 protected:
-  // 100.0 x 110.0 x 120.0 simulation box
-  Box box{{100.0, 110.0, 120.0}};
-  // 50 * 55 * 60 = 165,000 cells total
-  double scale_cell_width = 2.0;
+  CellList grid;
+  double min_cell_width = 2.0;
   size_t num_particles = 100000;
+
+  void SetUp() override {
+    const Lattice lattice = GetParam();
+    grid.resize(lattice, min_cell_width, num_particles);
+  }
 };
 
-TEST_F(MassiveCellListTest, CellIndex) {
-  CellList grid(box, scale_cell_width, num_particles);
+TEST_P(CellListTest, CellIndex) {
+  const Lattice lattice = GetParam();
 
-  // Verify cell boundaries map correctly at large scales
-  // (cx=0, cy=0, cz=0) -> 0
-  EXPECT_EQ(grid.get_cell_index({0.5, 0.5, 0.5}), 0);
+  ASSERT_GT(grid.total_cells(), 0);
 
-  // (cx=25, cy=25, cz=25) -> 25 + 27 * 50 + 30 * 2750 =
-  EXPECT_EQ(grid.get_cell_index({50.5, 55.5, 60.5}), 83875);
+  // Fractional (0.01, 0.01, 0.01) must always map to cell 0
+  EXPECT_EQ(grid.get_cell_index(lattice, lattice.to_cart({0.01, 0.01, 0.01})),
+            0);
 
-  //  (cx=49, cy=54, cz=59) -> 49 + 54 * 50 + 59 * 2750 = 164999
-  EXPECT_EQ(grid.get_cell_index({99.9, 109.9, 119.9}), 164999);
+  // Fractional (0.999, 0.999, 0.999) must always map to the last cell
+  EXPECT_EQ(
+      grid.get_cell_index(lattice, lattice.to_cart({0.999, 0.999, 0.999})),
+      grid.total_cells() - 1);
 }
 
-TEST_F(MassiveCellListTest, Neighbours) {
-  CellList grid(box, scale_cell_width, num_particles);
-
+TEST_P(CellListTest, Neighbours) {
   // Test neighbours are not completely off
   PRNG rng(1);
 
@@ -41,8 +44,7 @@ TEST_F(MassiveCellListTest, Neighbours) {
     EXPECT_EQ(local_neighbours.size(), 27);
     bool found_self = false;
     for (int n : local_neighbours) {
-      ASSERT_GE(n, 0) << "cell_idx: " << test_cell;
-      ASSERT_LT(n, 165000) << "cell_idx: " << test_cell;
+      ASSERT_LT(n, grid.total_cells()) << "cell_idx: " << test_cell;
       if (n == test_cell)
         found_self = true;
     }
@@ -51,30 +53,30 @@ TEST_F(MassiveCellListTest, Neighbours) {
   }
 }
 
-TEST_F(MassiveCellListTest, CellIndexInsertion) {
-  CellList grid(box, scale_cell_width, num_particles);
+TEST_P(CellListTest, CellIndexInsertion) {
+  const Lattice lattice = GetParam();
+  PRNG rng(42);
 
   for (size_t i = 0; i < num_particles; ++i) {
-    // Distribute coordinates deterministically across the box space
-    double x = (i * 0.123);
-    double y = (i * 0.456);
-    double z = (i * 0.789);
+    // Sample uniform fractional coords -> works identically for sheared
+    // triclinic boxes
+    const Vec3 pos = lattice.to_cart({
+        rng.random_double(0.0, 1.0),
+        rng.random_double(0.0, 1.0),
+        rng.random_double(0.0, 1.0),
+    });
 
-    Vec3 pos{x, y, z};
-
-    int cell_idx = grid.get_cell_index({x, y, z});
+    int cell_idx = grid.get_cell_index(lattice, pos);
 
     // Assert that the index is bounded within our valid array memory range
     ASSERT_GE(cell_idx, 0);
-    ASSERT_LT(cell_idx, 165000);
+    ASSERT_LT(cell_idx, grid.total_cells());
 
     grid.insert(i, cell_idx);
   }
 }
 
-TEST_F(MassiveCellListTest, LinkedListFuzz) {
-  CellList grid(box, scale_cell_width, num_particles);
-
+TEST_P(CellListTest, LinkedListFuzz) {
   PRNG rng(1);
 
   for (int i = 0; i < num_particles; ++i) {
@@ -106,3 +108,19 @@ TEST_F(MassiveCellListTest, LinkedListFuzz) {
     }
   }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Lattices, CellListTest,
+    ::testing::Values(
+        // Standard Cubic
+        Lattice::from_upper_triangular({8.0, 0.0, 0.0}, {0.0, 8.0, 0.0},
+                                       {0.0, 0.0, 8.0}),
+        // Orthorhombic (non-cubic aspect ratio)
+        Lattice::from_upper_triangular({6.0, 0.0, 0.0}, {0.0, 8.5, 0.0},
+                                       {0.0, 0.0, 11.0}),
+        // Hexagonal / HCP-style (60-degree xy angle)
+        Lattice::from_upper_triangular({8.0, 0.0, 0.0}, {4.0, 6.9282, 0.0},
+                                       {0.0, 0.0, 9.0}),
+        // Strongly Sheared Triclinic
+        Lattice::from_upper_triangular({8.0, 0.0, 0.0}, {3.5, 7.5, 0.0},
+                                       {-2.5, 3.0, 7.0})));

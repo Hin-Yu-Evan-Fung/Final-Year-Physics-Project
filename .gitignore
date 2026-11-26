@@ -62,3 +62,7 @@ build/
 
 # Shell files
 *.sh
+
+# perf files
+*.data
+*.data.old

@@ -1,13 +1,15 @@
-from .core import (
+from .hpmc_ext import (
+    BoxEngine,
+    Lattice,
     LSMCEngine,
-    ParticleType,
-    SingleBoxEngine,
+    SphereConfig,
     State,
 )
 
 __all__ = [
+    "BoxEngine",
     "LSMCEngine",
-    "ParticleType",
-    "SingleBoxEngine",
+    "Lattice",
+    "SphereConfig",
     "State",
 ]

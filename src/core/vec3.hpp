@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <format>
 #include <string>
 
@@ -19,18 +20,36 @@ struct Vec3 {
   constexpr Vec3 operator-(const Vec3 &o) const {
     return {x - o.x, y - o.y, z - o.z};
   }
-  constexpr Vec3 operator*(double s) const { return {x * s, y * s, z * s}; }
-  constexpr Vec3 operator/(double s) const { return {x / s, y / s, z / s}; }
+  constexpr Vec3 operator*(double s) const noexcept {
+    return {x * s, y * s, z * s};
+  }
+  constexpr Vec3 operator/(double s) const noexcept {
+    return {x / s, y / s, z / s};
+  }
 
-  constexpr Vec3 operator+=(const Vec3 &o) { return *this = *this + o; }
-  constexpr Vec3 operator-=(const Vec3 &o) { return *this = *this - o; }
-  constexpr Vec3 operator*=(double s) { return *this = *this * s; }
-  constexpr Vec3 operator/=(double s) { return *this = *this / s; }
+  constexpr Vec3 operator+=(const Vec3 &o) noexcept {
+    return *this = *this + o;
+  }
+  constexpr Vec3 operator-=(const Vec3 &o) noexcept {
+    return *this = *this - o;
+  }
+  constexpr Vec3 operator*=(double s) noexcept { return *this = *this * s; }
+  constexpr Vec3 operator/=(double s) noexcept { return *this = *this / s; }
 
-  constexpr double dot(const Vec3 &o) const {
+  constexpr double dot(const Vec3 &o) const noexcept {
     return x * o.x + y * o.y + z * o.z;
   }
+
+  constexpr Vec3 cross(const Vec3 &o) const noexcept {
+    return {
+        y * o.z - z * o.y,
+        z * o.x - x * o.z,
+        x * o.y - y * o.x,
+    };
+  }
+
   constexpr double norm2() const { return dot(*this); }
+  constexpr double norm() const { return std::sqrt(norm2()); }
 
   // Truncated due to formatting
   std::string to_str() const {

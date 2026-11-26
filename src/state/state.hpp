@@ -1,139 +1,155 @@
 #pragma once
 
-#include "core/box.hpp"
-#include "particle/particle.hpp"
-#include "particle/sphere.hpp"
+#include "core/lattice.hpp"
 #include "state/cell_list.hpp"
+#include "state/shape.hpp"
 
+#include <cmath>
 #include <span>
 #include <variant>
 #include <vector>
 
 namespace hpmc {
 
-using ParticleConfig = std::variant<SphereConfig>;
+using Config = std::variant<SphereConfig>;
 
-struct MoveProposal {
-  size_t idx;
-  Vec3 old_pos, new_pos;
-  int old_cell, new_cell;
+struct PosCell {
+  Vec3 pos;
+  int cell;
 };
 
 class State {
-  // Config
-  ParticleType type_;
-  ParticleConfig config_;
+  Config config_;
 
-  // Internal state
-  Box box_;
+  Lattice lattice_;
   CellList cell_list_;
+
   std::vector<double> x_{}, y_{}, z_{};
   size_t n_ = 0;
 
-  template <typename Config>
-  bool overlap(const Config &config, const MoveProposal &prop) const;
-  template <typename Config>
-  size_t local_overlaps(const Config &config, size_t idx, const Vec3 &pos,
-                        size_t cell) const;
-  template <typename Config> size_t global_overlaps(const Config &config) const;
+  template <typename Func>
+  void for_each_neighbour(size_t cell, Func &&func) const;
+  template <bool Break, ShapeConfig Config>
+  size_t local_overlaps(const Config &config, const Vec3 &pos, size_t cell,
+                        int excl_idx) const;
+  template <bool Break, ShapeConfig Config>
+  size_t global_overlaps(const Config &config) const;
 
 public:
-  State(ParticleType type, Vec3 box_dims, ParticleConfig config)
-      : type_(type), config_(config), box_(box_dims), cell_list_{} {}
-
-  constexpr size_t n() const { return n_; }
-  const Box &box() const { return box_; }
-  const std::vector<double> &x() const { return x_; }
-  const std::vector<double> &y() const { return y_; }
-  const std::vector<double> &z() const { return z_; }
-
-  constexpr Vec3 pos_at(size_t idx) const {
-    return {x_[idx], y_[idx], z_[idx]};
+  State(Config config, Lattice lattice)
+      : config_(std::move(config)), lattice_(std::move(lattice)), cell_list_{} {
   }
 
   void set_coords(std::span<const double> x, std::span<const double> y,
                   std::span<const double> z);
 
-  bool check_overlap(const MoveProposal &prop) const;
-  size_t count_local_overlaps(size_t idx, const Vec3 &pos, size_t cell) const;
-  size_t count_global_overlaps() const;
+  constexpr size_t n() const { return n_; }
+  const Lattice &lattice() const { return lattice_; }
+  const std::vector<double> &x() const { return x_; }
+  const std::vector<double> &y() const { return y_; }
+  const std::vector<double> &z() const { return z_; }
 
-  MoveProposal propse_translation(size_t idx, const Vec3 &displacement);
-  void accept_translation(const MoveProposal &prop);
+  int cell_of(int p_idx) const { return cell_list_.get_particle_cell(p_idx); }
+  int cell_of(const Vec3 &pos) const {
+    return cell_list_.get_cell_index(lattice_, pos);
+  }
+
+  constexpr Vec3 pos_at(size_t idx) const {
+    return {x_[idx], y_[idx], z_[idx]};
+  }
+
+  PosCell pos_cell(int idx) const { return {pos_at(idx), cell_of(idx)}; }
+
+  constexpr Vec3 displaced_pos(int idx, const Vec3 &delta) const noexcept {
+    return lattice_.wrap(pos_at(idx) + delta);
+  }
+  PosCell translated(int idx, const Vec3 &delta) const {
+    Vec3 s = lattice_.to_frac(pos_at(idx) + delta);
+    s.x -= std::floor(s.x);
+    s.y -= std::floor(s.y);
+    s.z -= std::floor(s.z);
+
+    return {lattice_.to_cart(s), cell_list_.get_cell_index_from_fractional(s)};
+  }
+
+  void set_pos(int idx, const Vec3 &new_pos, int new_cell) {
+    assert(idx >= 0 && idx < n_);
+    x_[idx] = new_pos.x;
+    y_[idx] = new_pos.y;
+    z_[idx] = new_pos.z;
+
+    const int old_cell = cell_list_.get_particle_cell(idx);
+    if (old_cell != new_cell) {
+      cell_list_.remove(idx, old_cell);
+      cell_list_.insert(idx, new_cell);
+    }
+  }
+
+  bool has_overlaps(const Vec3 &pos, size_t cell, int excl_idx = -1) const;
+  size_t count_overlaps(const Vec3 &pos, size_t cell, int excl_idx = -1) const;
+  bool has_any_overlaps() const;
+  size_t count_all_overlaps() const;
 };
 
 //=========================================
 //             Implementation
 //=========================================
 
-template <typename Config>
-bool State::overlap(const Config &config, const MoveProposal &prop) const {
-  const auto &local_cells = cell_list_.get_neighbours((size_t)prop.new_cell);
+enum class LoopControl : bool { Continue = false, Break = true };
 
-  for (size_t cell_idx : local_cells) {
-    int neighbour_id = cell_list_.get_head(cell_idx);
-
-    while (neighbour_id != -1) {
-      if (neighbour_id != (int)prop.idx &&
-          config.overlap(box_, prop.new_pos, pos_at(neighbour_id)))
-        return true;
-
-      neighbour_id = cell_list_.get_next((size_t)neighbour_id);
+template <typename Func>
+void State::for_each_neighbour(size_t cell, Func &&fn) const {
+  for (int cell_idx : cell_list_.get_neighbours(cell)) {
+    for (int nid = cell_list_.get_head(cell_idx); nid != -1;
+         nid = cell_list_.get_next(nid)) {
+      if (fn(nid) == LoopControl::Break)
+        return;
     }
   }
-
-  return false;
 }
 
-template <typename Config>
-size_t State::local_overlaps(const Config &config, size_t idx, const Vec3 &pos,
-                             size_t cell) const {
-  const auto &local_cells = cell_list_.get_neighbours(cell);
+template <bool Break, ShapeConfig Config>
+size_t State::local_overlaps(const Config &config, const Vec3 &pos, size_t cell,
+                             int excl_idx) const {
   size_t overlaps = 0;
 
-  for (size_t cell_idx : local_cells) {
-    int neighbour_id = cell_list_.get_head(cell_idx);
-
-    while (neighbour_id != -1) {
-      overlaps += neighbour_id != (int)idx &&
-                  config.overlap(box_, pos, pos_at(neighbour_id));
-
-      neighbour_id = cell_list_.get_next((size_t)neighbour_id);
+  for_each_neighbour(cell, [&](int uid) {
+    if (uid != excl_idx && config.overlap(lattice_, pos, pos_at(uid))) {
+      ++overlaps;
+      if constexpr (Break)
+        return LoopControl::Break;
     }
-  }
+    return LoopControl::Continue;
+  });
 
   return overlaps;
 }
 
-template <typename Config>
+template <bool Break, ShapeConfig Config>
 size_t State::global_overlaps(const Config &config) const {
   size_t overlaps = 0;
 
-  for (size_t cell_idx = 0; cell_idx < cell_list_.total_cells(); ++cell_idx) {
-    int p_id = cell_list_.get_head((size_t)cell_idx);
-    if (p_id == -1)
-      continue;
+  for (int cell_idx = 0; cell_idx < cell_list_.total_cells(); ++cell_idx) {
+    for (int p_id = cell_list_.get_head(cell_idx); p_id != -1;
+         p_id = cell_list_.get_next(p_id)) {
+      const Vec3 p_pos = pos_at(p_id);
 
-    const auto &local_cells = cell_list_.get_neighbours(cell_idx);
-
-    while (p_id != -1) {
-      // Find all neighbouring particles, which is everyone.
-      for (size_t n_cell : local_cells) {
-        int neighbour_id = cell_list_.get_head(n_cell);
-
-        while (neighbour_id != -1) {
-          // Protects against self checks and double counting
-          if (p_id < neighbour_id) {
-            overlaps +=
-                config.overlap(box_, pos_at(p_id), pos_at(neighbour_id));
+      for_each_neighbour(cell_idx, [&](int n_id) {
+        if (p_id < n_id && config.overlap(lattice_, p_pos, pos_at(n_id))) {
+          ++overlaps;
+          if constexpr (Break) {
+            return LoopControl::Break;
           }
-          neighbour_id = cell_list_.get_next((size_t)neighbour_id);
         }
-      }
+        return LoopControl::Continue;
+      });
 
-      p_id = cell_list_.get_next((size_t)p_id);
+      if constexpr (Break)
+        if (overlaps > 0)
+          return 1;
     }
   }
+
   return overlaps;
 }
 
